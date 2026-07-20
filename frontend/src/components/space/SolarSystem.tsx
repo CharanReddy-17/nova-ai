@@ -419,11 +419,12 @@ function OrbitPath({ radius }: { radius: number }) {
     return g;
   }, [points]);
 
-  return (
-    <line geometry={geometry}>
-      <lineBasicMaterial color="#334466" transparent opacity={0.35} linewidth={1} />
-    </line>
-  );
+  const lineObj = useMemo(() => {
+    const mat = new THREE.LineBasicMaterial({ color: '#334466', transparent: true, opacity: 0.35 });
+    return new THREE.Line(geometry, mat);
+  }, [geometry]);
+
+  return <primitive object={lineObj} />;
 }
 
 // ─── Saturn Rings ─────────────────────────────────────────────────────────────
