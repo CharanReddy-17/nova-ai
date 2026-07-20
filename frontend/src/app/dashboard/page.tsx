@@ -11,6 +11,8 @@ import MessageInput from '@/components/chat/MessageInput';
 import TypingIndicator from '@/components/chat/TypingIndicator';
 import ModelSelector, { MODELS } from '@/components/ui/ModelSelector';
 import ExportModal from '@/components/ui/ExportModal';
+import PersonaSelector, { PERSONAS } from '@/components/ui/PersonaSelector';
+import StatsPanel from '@/components/ui/StatsPanel';
 
 const SpaceCanvas = dynamic(() => import('@/components/space/SpaceCanvas'), { ssr: false });
 
@@ -34,6 +36,16 @@ export default function DashboardPage() {
   const [rightOpen, setRightOpen]     = useState(false);
   const [spaceObject, setSpaceObject] = useState('earth');
   const [exportOpen, setExportOpen]   = useState(false);
+  const [statsOpen, setStatsOpen]     = useState(false);
+  const [selectedPersona, setSelectedPersona] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('nova_persona') || 'default';
+    return 'default';
+  });
+
+  const handlePersonaSelect = (id: string) => {
+    setSelectedPersona(id);
+    localStorage.setItem('nova_persona', id);
+  };
   const [selectedModel, setSelectedModel] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('nova_model') || MODELS[0].id;
     return MODELS[0].id;
@@ -152,11 +164,11 @@ export default function DashboardPage() {
             timestamp: new Date().toISOString(),
           }]);
         },
-      }, selectedModel);
+      }, selectedModel, selectedPersona);
     } catch {
       // Fallback to non-streaming
       try {
-        const { message, spaceKeyword } = await chatService.sendMessage(chat._id, content, selectedModel);
+        const { message, spaceKeyword } = await chatService.sendMessage(chat._id, content, selectedModel, selectedPersona);
         setMessages(prev => {
           const updated = prev.filter(m => !(m.role === 'assistant' && m.content === ''));
           return [...updated, message];
@@ -189,6 +201,12 @@ export default function DashboardPage() {
   return (
     <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden', background: '#09090b' }}>
 
+      <StatsPanel
+        open={statsOpen}
+        onClose={() => setStatsOpen(false)}
+        username={user?.username}
+      />
+
       <ExportModal
         open={exportOpen}
         onClose={() => setExportOpen(false)}
@@ -218,8 +236,20 @@ export default function DashboardPage() {
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Persona selector */}
+            <PersonaSelector selectedPersona={selectedPersona} onSelect={handlePersonaSelect} />
             {/* Model selector */}
             <ModelSelector selectedModel={selectedModel} onSelect={handleModelSelect} />
+            {/* Stats button */}
+            <button
+              onClick={() => setStatsOpen(true)}
+              title="Your stats"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '6px 10px', color: '#71717a', cursor: 'pointer', fontSize: 12, fontWeight: 500, transition: 'all 0.2s' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#a1a1aa'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#71717a'; }}
+            >
+              📊
+            </button>
             {/* Export button */}
             {activeChat && messages.length > 0 && (
               <button
@@ -247,12 +277,14 @@ export default function DashboardPage() {
             {messages.length === 0 && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
                 style={{ textAlign: 'center', paddingTop: 48 }}>
-                <div className="nova-logo-icon" style={{ width: 52, height: 52, fontSize: 24, borderRadius: 16, margin: '0 auto 16px' }}>N</div>
+                <div style={{ width: 52, height: 52, fontSize: 26, borderRadius: 16, margin: '0 auto 16px', background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {PERSONAS.find(p => p.id === selectedPersona)?.emoji || '🤖'}
+                </div>
                 <h2 style={{ color: '#fafafa', fontSize: 22, fontWeight: 700, marginBottom: 8 }}>
-                  What can I help you with?
+                  {selectedPersona === 'default' ? 'What can I help you with?' : `${PERSONAS.find(p => p.id === selectedPersona)?.name} is ready`}
                 </h2>
                 <p style={{ color: '#71717a', fontSize: 14, marginBottom: 32 }}>
-                  Ask anything — I&apos;m powered by LLaMA 3.3 70B via Groq.
+                  {PERSONAS.find(p => p.id === selectedPersona)?.tagline} · Powered by LLaMA 3.3 70B
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, maxWidth: 480, margin: '0 auto', textAlign: 'left' }}>
                   {SUGGESTIONS.map(s => (

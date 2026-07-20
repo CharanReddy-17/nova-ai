@@ -39,11 +39,11 @@ export const chatService = {
     api.delete(`/chats/${id}`).then(r => r.data),
 
   // Non-streaming fallback
-  sendMessage: (id: string, content: string, model?: string) =>
-    api.post<{ message: Message; spaceKeyword: string | null }>(`/chats/${id}/messages`, { content, model }).then(r => r.data),
+  sendMessage: (id: string, content: string, model?: string, persona?: string) =>
+    api.post<{ message: Message; spaceKeyword: string | null }>(`/chats/${id}/messages`, { content, model, persona }).then(r => r.data),
 
   // ── Streaming message ──────────────────────────────────────────────────────
-  streamMessage: async (id: string, content: string, callbacks: StreamCallbacks, model?: string): Promise<void> => {
+  streamMessage: async (id: string, content: string, callbacks: StreamCallbacks, model?: string, persona?: string): Promise<void> => {
     const token = localStorage.getItem('cosmic_token');
     const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -53,7 +53,7 @@ export const chatService = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
-      body: JSON.stringify({ content, model }),
+      body: JSON.stringify({ content, model, persona }),
     });
 
     if (!response.ok) {

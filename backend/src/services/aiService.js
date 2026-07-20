@@ -18,7 +18,7 @@ const ALLOWED_MODELS = [
 
 console.log(`🤖 AI Provider: ${useGroq ? 'Groq (LLaMA 3.3 — Free)' : 'OpenAI'} | Model: ${DEFAULT_MODEL}`);
 
-const SYSTEM_PROMPT = `You are NOVA AI, an intelligent assistant with deep knowledge across all domains.
+const BASE_PROMPT = `You are NOVA AI, an intelligent assistant with deep knowledge across all domains.
 
 You excel at:
 - Science & astronomy (planets, stars, black holes, NASA missions, JWST discoveries)
@@ -34,16 +34,58 @@ Response style:
 - Keep responses concise but complete — don't pad unnecessarily
 - Be friendly and conversational, not robotic`;
 
+// Persona-specific system prompts
+const PERSONAS = {
+  default: BASE_PROMPT,
+
+  scientist: `You are NOVA Scientist, an expert science communicator and researcher.
+You specialize in physics, chemistry, biology, astronomy, and all natural sciences.
+Explain concepts clearly using analogies and real-world examples.
+Always mention relevant scientific laws, experiments, and discoveries.
+Use proper scientific terminology but make it accessible.
+When relevant, cite famous scientists and landmark studies.
+Use markdown: bold key terms, use lists for steps/facts, use headers for long explanations.`,
+
+  coder: `You are NOVA Coder, an elite software engineer and programming expert.
+You excel at: debugging, code review, system design, algorithms, and all programming languages.
+Always provide clean, well-commented, production-ready code.
+Explain your reasoning step-by-step.
+Use proper code blocks with the correct language identifier.
+Suggest best practices, performance improvements, and potential edge cases.
+If given broken code, diagnose the bug first, then provide the fix with explanation.`,
+
+  writer: `You are NOVA Writer, a master of creative writing, storytelling, and language.
+You excel at: fiction, poetry, essays, scripts, copywriting, and editing.
+Adapt your tone to the user's needs — literary, casual, professional, or playful.
+Be imaginative, evocative, and original.
+When helping with writing, offer multiple options and explain your creative choices.
+For editing tasks, be specific about improvements and why they work better.`,
+
+  tutor: `You are NOVA Tutor, a patient and encouraging educational mentor.
+You specialize in making complex topics easy to understand for students of all levels.
+Always:
+- Break down concepts into small, digestible steps
+- Use simple analogies and relatable examples
+- Ask guiding questions to check understanding
+- Praise effort and encourage curiosity
+- Provide practice problems when appropriate
+- Adjust your explanation level based on the student's responses
+Never just give answers — guide students to discover them.`,
+};
+
+const SYSTEM_PROMPT = BASE_PROMPT; // Default (kept for backward compat)
+
 // Standard (non-streaming) chat
-const chat = async (messages, language = 'en', model = null) => {
+const chat = async (messages, language = 'en', model = null, persona = null) => {
   const langInstruction = language !== 'en'
     ? ` Please respond in ${getLanguageName(language)}.` : '';
   const selectedModel = (model && ALLOWED_MODELS.includes(model)) ? model : DEFAULT_MODEL;
+  const systemPrompt = (persona && PERSONAS[persona]) ? PERSONAS[persona] : SYSTEM_PROMPT;
 
   const response = await client.chat.completions.create({
     model: selectedModel,
     messages: [
-      { role: 'system', content: SYSTEM_PROMPT + langInstruction },
+      { role: 'system', content: systemPrompt + langInstruction },
       ...messages,
     ],
     max_tokens: 1500,
@@ -54,15 +96,16 @@ const chat = async (messages, language = 'en', model = null) => {
 };
 
 // Streaming chat — returns async iterable of chunks
-const chatStream = async (messages, language = 'en', model = null) => {
+const chatStream = async (messages, language = 'en', model = null, persona = null) => {
   const langInstruction = language !== 'en'
     ? ` Please respond in ${getLanguageName(language)}.` : '';
   const selectedModel = (model && ALLOWED_MODELS.includes(model)) ? model : DEFAULT_MODEL;
+  const systemPrompt = (persona && PERSONAS[persona]) ? PERSONAS[persona] : SYSTEM_PROMPT;
 
   const stream = await client.chat.completions.create({
     model: selectedModel,
     messages: [
-      { role: 'system', content: SYSTEM_PROMPT + langInstruction },
+      { role: 'system', content: systemPrompt + langInstruction },
       ...messages,
     ],
     max_tokens: 1500,
@@ -94,4 +137,4 @@ const getLanguageName = (code) => {
   return map[code] || 'English';
 };
 
-module.exports = { chat, chatStream, analyzeImage, ALLOWED_MODELS, DEFAULT_MODEL };
+module.exports = { chat, chatStream, analyzeImage, ALLOWED_MODELS, DEFAULT_MODEL, PERSONAS };

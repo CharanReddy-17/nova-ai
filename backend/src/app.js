@@ -9,6 +9,7 @@ const authRoutes   = require('./routes/auth');
 const chatRoutes   = require('./routes/chats');
 const nasaRoutes   = require('./routes/nasa');
 const uploadRoutes = require('./routes/uploads');
+const statsRoutes  = require('./routes/stats');
 
 const app = express();
 
@@ -73,6 +74,7 @@ app.use('/api/auth',    authRoutes);
 app.use('/api/chats',   chatRoutes);
 app.use('/api/nasa',    nasaRoutes);
 app.use('/api/uploads', uploadRoutes);
+app.use('/api/stats',   statsRoutes);
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 const mongoose = require('mongoose');

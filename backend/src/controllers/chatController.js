@@ -78,7 +78,7 @@ const deleteChat = async (req, res) => {
 // @route POST /api/chats/:id/messages (non-streaming fallback)
 const sendMessage = async (req, res) => {
   try {
-    const { content, model } = req.body;
+    const { content, model, persona } = req.body;
     if (!content || !content.trim()) return res.status(400).json({ error: 'Message content is required.' });
 
     const chat = await Chat.findOne({ _id: req.params.id, userId: req.user._id });
@@ -90,7 +90,7 @@ const sendMessage = async (req, res) => {
     }
 
     const history = chat.messages.slice(-20).map(m => ({ role: m.role, content: m.content }));
-    const aiResponse = await aiService.chat(history, req.user.preferences?.language || 'en', model || null);
+    const aiResponse = await aiService.chat(history, req.user.preferences?.language || 'en', model || null, persona || null);
 
     const keyword = extractSpaceKeyword(content);
     let nasaImages = [];
@@ -113,7 +113,7 @@ const sendMessage = async (req, res) => {
 // @route POST /api/chats/:id/messages/stream  ← NEW STREAMING ENDPOINT
 const streamMessage = async (req, res) => {
   try {
-    const { content, model } = req.body;
+    const { content, model, persona } = req.body;
     if (!content || !content.trim()) return res.status(400).json({ error: 'Message content is required.' });
 
     const chat = await Chat.findOne({ _id: req.params.id, userId: req.user._id });
@@ -141,7 +141,7 @@ const streamMessage = async (req, res) => {
     }
 
     // Stream AI response
-    const stream = await aiService.chatStream(history, req.user.preferences?.language || 'en', model || null);
+    const stream = await aiService.chatStream(history, req.user.preferences?.language || 'en', model || null, persona || null);
     let fullResponse = '';
 
     for await (const chunk of stream) {
