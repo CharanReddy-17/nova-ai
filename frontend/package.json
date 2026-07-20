@@ -1,6 +1,6 @@
 {
-  "name": "cosmic-explorer-frontend",
-  "version": "1.0.0",
+  "name": "nova-ai-frontend",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -11,7 +11,6 @@
   "dependencies": {
     "@react-three/drei": "^9.92.1",
     "@react-three/fiber": "^8.15.12",
-    "@react-three/postprocessing": "^3.0.4",
     "@types/three": "^0.160.0",
     "axios": "^1.6.2",
     "framer-motion": "^10.16.16",
