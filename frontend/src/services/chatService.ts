@@ -1,13 +1,110 @@
 import api from './api';
 
-export interface Message { role: 'user' | 'assistant'; content: string; timestamp: string; nasaImages?: {url:string;title:string}[]; }
-export interface Chat { _id: string; title: string; messages: Message[]; createdAt: string; updatedAt: string; isPinned: boolean; }
+export interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+  nasaImages?: { url: string; title: string }[];
+}
+
+export interface Chat {
+  _id: string;
+  title: string;
+  messages: Message[];
+  createdAt: string;
+  updatedAt: string;
+  isPinned: boolean;
+}
+
+export interface StreamCallbacks {
+  onChunk: (chunk: string) => void;
+  onDone: (meta: { spaceKeyword: string | null; title: string }) => void;
+  onError: (error: string) => void;
+}
 
 export const chatService = {
-  getChats: () => api.get<{chats: Chat[]}>('/chats').then(r => r.data.chats),
-  createChat: (title?: string) => api.post<{chat: Chat}>('/chats', { title }).then(r => r.data.chat),
-  getChat: (id: string) => api.get<{chat: Chat}>(`/chats/${id}`).then(r => r.data.chat),
-  updateChat: (id: string, data: {title?: string; isPinned?: boolean}) => api.patch<{chat: Chat}>(`/chats/${id}`, data).then(r => r.data.chat),
-  deleteChat: (id: string) => api.delete(`/chats/${id}`).then(r => r.data),
-  sendMessage: (id: string, content: string) => api.post<{message: Message; spaceKeyword: string | null}>(`/chats/${id}/messages`, { content }).then(r => r.data),
+  getChats: () =>
+    api.get<{ chats: Chat[] }>('/chats').then(r => r.data.chats),
+
+  createChat: (title?: string) =>
+    api.post<{ chat: Chat }>('/chats', { title }).then(r => r.data.chat),
+
+  getChat: (id: string) =>
+    api.get<{ chat: Chat }>(`/chats/${id}`).then(r => r.data.chat),
+
+  updateChat: (id: string, data: { title?: string; isPinned?: boolean }) =>
+    api.patch<{ chat: Chat }>(`/chats/${id}`, data).then(r => r.data.chat),
+
+  deleteChat: (id: string) =>
+    api.delete(`/chats/${id}`).then(r => r.data),
+
+  // Non-streaming fallback
+  sendMessage: (id: string, content: string) =>
+    api.post<{ message: Message; spaceKeyword: string | null }>(`/chats/${id}/messages`, { content }).then(r => r.data),
+
+  // ── Streaming message ──────────────────────────────────────────────────────
+  streamMessage: async (id: string, content: string, callbacks: StreamCallbacks): Promise<void> => {
+    const token = localStorage.getItem('cosmic_token');
+    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+    const response = await fetch(`${baseURL}/api/chats/${id}/messages/stream`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ content }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ error: 'Stream failed' }));
+      callbacks.onError(err.error || 'Streaming failed');
+      return;
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) { callbacks.onError('No stream reader available'); return; }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || ''; // keep incomplete line in buffer
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+
+        // Parse SSE event type
+        if (line.startsWith('event: done')) continue;
+        if (line.startsWith('event: error')) continue;
+        if (line.startsWith('event: meta')) continue;
+
+        if (line.startsWith('data: ')) {
+          const raw = line.slice(6).trim();
+          if (!raw) continue;
+
+          try {
+            const parsed = JSON.parse(raw);
+
+            if (parsed.chunk !== undefined) {
+              // Regular text chunk
+              callbacks.onChunk(parsed.chunk);
+            } else if (parsed.spaceKeyword !== undefined && parsed.title !== undefined) {
+              // Done event OR meta event
+              callbacks.onDone({ spaceKeyword: parsed.spaceKeyword, title: parsed.title });
+            } else if (parsed.error) {
+              callbacks.onError(parsed.error);
+            }
+          } catch {
+            // Non-JSON line, skip
+          }
+        }
+      }
+    }
+  },
 };

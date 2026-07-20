@@ -86,7 +86,7 @@ export default function DashboardPage() {
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || isSending) return;
 
-    // Need an active chat — create one if none
+    // Create chat if none exists
     let chat = activeChat;
     if (!chat) {
       try {
@@ -102,19 +102,61 @@ export default function DashboardPage() {
     setIsSending(true);
     setIsTyping(true);
 
-    try {
-      const { message, spaceKeyword } = await chatService.sendMessage(chat._id, content);
-      setMessages(prev => [...prev, message]);
-      if (spaceKeyword) setSpaceObject(spaceKeyword);
+    // Prepare streaming AI message placeholder
+    let streamedContent = '';
+    const streamingMsg: Message = { role: 'assistant', content: '', timestamp: new Date().toISOString() };
 
-      // Update chat title in sidebar
-      setChats(prev => prev.map(c =>
-        c._id === chat!._id
-          ? { ...c, title: c.title === 'New Chat' ? content.slice(0, 45) + (content.length > 45 ? '…' : '') : c.title, updatedAt: new Date().toISOString() }
-          : c
-      ));
+    try {
+      await chatService.streamMessage(chat._id, content, {
+        onChunk: (chunk) => {
+          streamedContent += chunk;
+          setIsTyping(false);
+          // Update the streaming message in real-time
+          setMessages(prev => {
+            const updated = [...prev];
+            const lastIdx = updated.length - 1;
+            if (updated[lastIdx]?.role === 'assistant' && updated[lastIdx]?.content !== undefined) {
+              updated[lastIdx] = { ...updated[lastIdx], content: streamedContent };
+            } else {
+              updated.push({ ...streamingMsg, content: streamedContent });
+            }
+            return updated;
+          });
+        },
+        onDone: ({ spaceKeyword, title }) => {
+          if (spaceKeyword) setSpaceObject(spaceKeyword);
+          // Update chat title in sidebar
+          setChats(prev => prev.map(c =>
+            c._id === chat!._id
+              ? { ...c, title: title || c.title, updatedAt: new Date().toISOString() }
+              : c
+          ));
+        },
+        onError: (error) => {
+          console.error('Stream error:', error);
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: '⚠️ Connection interrupted. Please try again.',
+            timestamp: new Date().toISOString(),
+          }]);
+        },
+      });
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Sorry, I had trouble responding. Please try again.', timestamp: new Date().toISOString() }]);
+      // Fallback to non-streaming
+      try {
+        const { message, spaceKeyword } = await chatService.sendMessage(chat._id, content);
+        setMessages(prev => {
+          const updated = prev.filter(m => !(m.role === 'assistant' && m.content === ''));
+          return [...updated, message];
+        });
+        if (spaceKeyword) setSpaceObject(spaceKeyword);
+      } catch {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: '⚠️ AI is temporarily unavailable. Please try again.',
+          timestamp: new Date().toISOString(),
+        }]);
+      }
     } finally {
       setIsSending(false);
       setIsTyping(false);

@@ -1,44 +1,35 @@
 const OpenAI = require('openai');
 
-// Groq is OpenAI-compatible — just change baseURL and model
-// Falls back to OpenAI if GROQ_API_KEY is not set
 const useGroq = !!process.env.GROQ_API_KEY;
 
 const client = useGroq
-  ? new OpenAI({
-      apiKey: process.env.GROQ_API_KEY,
-      baseURL: 'https://api.groq.com/openai/v1',
-    })
+  ? new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: 'https://api.groq.com/openai/v1' })
   : new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const DEFAULT_MODEL = useGroq ? 'llama-3.3-70b-versatile' : (process.env.OPENAI_MODEL || 'gpt-4o-mini');
 
-console.log(`🤖 AI Provider: ${useGroq ? 'Groq (LLaMA 3 — Free)' : 'OpenAI'} | Model: ${DEFAULT_MODEL}`);
+console.log(`🤖 AI Provider: ${useGroq ? 'Groq (LLaMA 3.3 — Free)' : 'OpenAI'} | Model: ${DEFAULT_MODEL}`);
 
-const SYSTEM_PROMPT = `You are Cosmic Explorer AI, an expert astronomy assistant powered by NASA data and cutting-edge astrophysics knowledge.
+const SYSTEM_PROMPT = `You are NOVA AI, an intelligent assistant with deep knowledge across all domains.
 
-You specialize in:
-- Solar system planets, moons, asteroids, and comets
-- Stars, stellar evolution, nebulae, and galaxies
-- Black holes, neutron stars, quasars, and pulsars
-- Space missions (NASA, ESA, SpaceX, ISRO, etc.)
-- James Webb Space Telescope discoveries
-- Cosmology and the origin of the universe
-- Exoplanets and the search for life
-- Space technology and instrumentation
+You excel at:
+- Science & astronomy (planets, stars, black holes, NASA missions, JWST discoveries)
+- Programming & code (debugging, explaining, writing clean code in any language)
+- Mathematics & problem solving (step-by-step explanations)
+- Writing & creativity (essays, stories, summaries, brainstorming)
+- General knowledge & research (facts, history, geography, current events)
 
 Response style:
-- Be accurate, engaging, and educational
-- Use markdown formatting (bold, lists, headers where appropriate)
-- When explaining complex concepts, use analogies
-- Mention relevant NASA missions and recent discoveries
-- Keep responses concise but complete (2-4 paragraphs max unless asked for more)
-- If asked to show something visually, mention you're triggering the 3D visualization`;
+- Be accurate, clear, and engaging
+- Use markdown formatting (bold, lists, code blocks, headers where appropriate)
+- For code: always use proper code blocks with language syntax
+- Keep responses concise but complete — don't pad unnecessarily
+- Be friendly and conversational, not robotic`;
 
+// Standard (non-streaming) chat
 const chat = async (messages, language = 'en') => {
   const langInstruction = language !== 'en'
-    ? ` Please respond in ${getLanguageName(language)}.`
-    : '';
+    ? ` Please respond in ${getLanguageName(language)}.` : '';
 
   const response = await client.chat.completions.create({
     model: DEFAULT_MODEL,
@@ -46,35 +37,45 @@ const chat = async (messages, language = 'en') => {
       { role: 'system', content: SYSTEM_PROMPT + langInstruction },
       ...messages,
     ],
-    max_tokens: 1024,
+    max_tokens: 1500,
     temperature: 0.7,
   });
 
   return response.choices[0].message.content;
 };
 
-const analyzeImage = async (imageUrl, prompt = '') => {
-  // Image analysis only available with OpenAI vision models
-  if (useGroq) {
-    return 'Image analysis requires OpenAI API. The image was uploaded successfully!';
-  }
-  const response = await client.chat.completions.create({
-    model: 'gpt-4o-mini',
+// Streaming chat — returns async iterable of chunks
+const chatStream = async (messages, language = 'en') => {
+  const langInstruction = language !== 'en'
+    ? ` Please respond in ${getLanguageName(language)}.` : '';
+
+  const stream = await client.chat.completions.create({
+    model: DEFAULT_MODEL,
     messages: [
-      {
-        role: 'user',
-        content: [
-          { type: 'image_url', image_url: { url: imageUrl } },
-          {
-            type: 'text',
-            text: prompt || 'Analyze this astronomy image. Describe what you see, identify any celestial objects, and provide interesting facts about them.',
-          },
-        ],
-      },
+      { role: 'system', content: SYSTEM_PROMPT + langInstruction },
+      ...messages,
     ],
-    max_tokens: 512,
+    max_tokens: 1500,
+    temperature: 0.7,
+    stream: true,
   });
 
+  return stream;
+};
+
+const analyzeImage = async (imageUrl, prompt = '') => {
+  if (useGroq) return 'Image analysis — upload your image and ask NOVA AI about it!';
+  const response = await client.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'image_url', image_url: { url: imageUrl } },
+        { type: 'text', text: prompt || 'Analyze this image and describe what you see.' },
+      ],
+    }],
+    max_tokens: 512,
+  });
   return response.choices[0].message.content;
 };
 
@@ -83,4 +84,4 @@ const getLanguageName = (code) => {
   return map[code] || 'English';
 };
 
-module.exports = { chat, analyzeImage };
+module.exports = { chat, chatStream, analyzeImage };
