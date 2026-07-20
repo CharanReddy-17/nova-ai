@@ -10,6 +10,7 @@ import MessageBubble from '@/components/chat/MessageBubble';
 import MessageInput from '@/components/chat/MessageInput';
 import TypingIndicator from '@/components/chat/TypingIndicator';
 import ModelSelector, { MODELS } from '@/components/ui/ModelSelector';
+import ExportModal from '@/components/ui/ExportModal';
 
 const SpaceCanvas = dynamic(() => import('@/components/space/SpaceCanvas'), { ssr: false });
 
@@ -32,6 +33,7 @@ export default function DashboardPage() {
   const [chatsLoading, setChatsLoading] = useState(true);
   const [rightOpen, setRightOpen]     = useState(false);
   const [spaceObject, setSpaceObject] = useState('earth');
+  const [exportOpen, setExportOpen]   = useState(false);
   const [selectedModel, setSelectedModel] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('nova_model') || MODELS[0].id;
     return MODELS[0].id;
@@ -187,13 +189,21 @@ export default function DashboardPage() {
   return (
     <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden', background: '#09090b' }}>
 
-      {/* ── Sidebar ─────────────────────────────────────────────────────── */}
+      <ExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        chat={activeChat}
+        messages={messages}
+      />
+
+      {/* ── Sidebar ───────────────────────────────────────────────── */}
       <Sidebar
         chats={chats}
         activeChat={activeChat}
         onSelectChat={loadChat}
         onNewChat={createNewChat}
         onDeleteChat={deleteChat}
+        onUpdateChats={setChats}
         isLoading={chatsLoading}
       />
 
@@ -207,9 +217,21 @@ export default function DashboardPage() {
               {activeChat?.title || 'New Chat'}
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {/* Model selector */}
             <ModelSelector selectedModel={selectedModel} onSelect={handleModelSelect} />
+            {/* Export button */}
+            {activeChat && messages.length > 0 && (
+              <button
+                onClick={() => setExportOpen(true)}
+                title="Export conversation"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '6px 10px', color: '#71717a', cursor: 'pointer', fontSize: 12, fontWeight: 500, transition: 'all 0.2s' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#a1a1aa'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#71717a'; }}
+              >
+                ⬇ Export
+              </button>
+            )}
             <button onClick={() => setRightOpen(v => !v)}
               style={{ background: rightOpen ? 'rgba(124,58,237,0.2)' : 'rgba(255,255,255,0.04)', border: `1px solid ${rightOpen ? 'rgba(124,58,237,0.4)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 8, padding: '6px 12px', color: rightOpen ? '#c4b5fd' : '#71717a', cursor: 'pointer', fontSize: 12, fontWeight: 500, transition: 'all 0.2s' }}>
               🌌 3D
