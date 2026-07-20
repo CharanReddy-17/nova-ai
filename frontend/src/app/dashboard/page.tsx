@@ -9,6 +9,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import MessageBubble from '@/components/chat/MessageBubble';
 import MessageInput from '@/components/chat/MessageInput';
 import TypingIndicator from '@/components/chat/TypingIndicator';
+import ModelSelector, { MODELS } from '@/components/ui/ModelSelector';
 
 const SpaceCanvas = dynamic(() => import('@/components/space/SpaceCanvas'), { ssr: false });
 
@@ -31,6 +32,15 @@ export default function DashboardPage() {
   const [chatsLoading, setChatsLoading] = useState(true);
   const [rightOpen, setRightOpen]     = useState(false);
   const [spaceObject, setSpaceObject] = useState('earth');
+  const [selectedModel, setSelectedModel] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('nova_model') || MODELS[0].id;
+    return MODELS[0].id;
+  });
+
+  const handleModelSelect = (id: string) => {
+    setSelectedModel(id);
+    localStorage.setItem('nova_model', id);
+  };
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -140,11 +150,11 @@ export default function DashboardPage() {
             timestamp: new Date().toISOString(),
           }]);
         },
-      });
+      }, selectedModel);
     } catch {
       // Fallback to non-streaming
       try {
-        const { message, spaceKeyword } = await chatService.sendMessage(chat._id, content);
+        const { message, spaceKeyword } = await chatService.sendMessage(chat._id, content, selectedModel);
         setMessages(prev => {
           const updated = prev.filter(m => !(m.role === 'assistant' && m.content === ''));
           return [...updated, message];
@@ -161,7 +171,7 @@ export default function DashboardPage() {
       setIsSending(false);
       setIsTyping(false);
     }
-  }, [activeChat, isSending]);
+  }, [activeChat, isSending, selectedModel]);
 
   if (isLoading) {
     return (
@@ -198,7 +208,8 @@ export default function DashboardPage() {
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span className="badge badge-purple" style={{ fontSize: 11 }}>LLaMA 3.3 70B</span>
+            {/* Model selector */}
+            <ModelSelector selectedModel={selectedModel} onSelect={handleModelSelect} />
             <button onClick={() => setRightOpen(v => !v)}
               style={{ background: rightOpen ? 'rgba(124,58,237,0.2)' : 'rgba(255,255,255,0.04)', border: `1px solid ${rightOpen ? 'rgba(124,58,237,0.4)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 8, padding: '6px 12px', color: rightOpen ? '#c4b5fd' : '#71717a', cursor: 'pointer', fontSize: 12, fontWeight: 500, transition: 'all 0.2s' }}>
               🌌 3D
