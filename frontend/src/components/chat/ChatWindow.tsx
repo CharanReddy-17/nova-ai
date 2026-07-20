@@ -93,7 +93,7 @@ export default function ChatWindow({
       </div>
 
       {/* Input */}
-      <MessageInput onSend={onSend} isSending={isSending} activeChatId={activeChatId} onNewChat={onNewChat} />
+      <MessageInput onSend={onSend} isSending={isSending} />
     </div>
   );
 }
