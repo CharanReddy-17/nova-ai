@@ -81,8 +81,17 @@ const sendMessage = async (req, res) => {
     const { content, model, persona } = req.body;
     if (!content || !content.trim()) return res.status(400).json({ error: 'Message content is required.' });
 
+    // Daily limit check
+    const UserModel = require('../models/User');
+    const freshUser = await UserModel.findById(req.user._id);
+    freshUser.resetDailyCountIfNeeded();
+    if (freshUser.isAtLimit()) {
+      return res.status(429).json({ error: 'Daily limit reached', code: 'LIMIT_REACHED', plan: 'free', limit: 50 });
+    }
+
     const chat = await Chat.findOne({ _id: req.params.id, userId: req.user._id });
     if (!chat) return res.status(404).json({ error: 'Chat not found.' });
+
 
     chat.messages.push({ role: 'user', content });
     if (chat.messages.length === 1 && chat.title === 'New Chat') {
@@ -100,10 +109,13 @@ const sendMessage = async (req, res) => {
 
     chat.messages.push({ role: 'assistant', content: aiResponse, nasaImages });
     await chat.save();
+    freshUser.dailyMessageCount += 1;
+    await freshUser.save();
 
     res.json({
       message: { role: 'assistant', content: aiResponse, nasaImages, timestamp: new Date() },
       spaceKeyword: keyword,
+      usage: { count: freshUser.dailyMessageCount, limit: 50, plan: freshUser.plan },
     });
   } catch (err) {
     res.status(500).json({ error: err.message || 'AI service temporarily unavailable.' });
@@ -115,6 +127,14 @@ const streamMessage = async (req, res) => {
   try {
     const { content, model, persona } = req.body;
     if (!content || !content.trim()) return res.status(400).json({ error: 'Message content is required.' });
+
+    // Daily limit check
+    const UserModel = require('../models/User');
+    const freshUser = await UserModel.findById(req.user._id);
+    freshUser.resetDailyCountIfNeeded();
+    if (freshUser.isAtLimit()) {
+      return res.status(429).json({ error: 'Daily limit reached', code: 'LIMIT_REACHED', plan: 'free', limit: 50 });
+    }
 
     const chat = await Chat.findOne({ _id: req.params.id, userId: req.user._id });
     if (!chat) return res.status(404).json({ error: 'Chat not found.' });

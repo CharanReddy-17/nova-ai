@@ -13,6 +13,7 @@ import ModelSelector, { MODELS } from '@/components/ui/ModelSelector';
 import ExportModal from '@/components/ui/ExportModal';
 import PersonaSelector, { PERSONAS } from '@/components/ui/PersonaSelector';
 import StatsPanel from '@/components/ui/StatsPanel';
+import UpgradeModal from '@/components/ui/UpgradeModal';
 
 const SpaceCanvas = dynamic(() => import('@/components/space/SpaceCanvas'), { ssr: false });
 
@@ -37,6 +38,8 @@ export default function DashboardPage() {
   const [spaceObject, setSpaceObject] = useState('earth');
   const [exportOpen, setExportOpen]   = useState(false);
   const [statsOpen, setStatsOpen]     = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [dailyUsed, setDailyUsed]     = useState(0);
   const [selectedPersona, setSelectedPersona] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('nova_persona') || 'default';
     return 'default';
@@ -165,7 +168,13 @@ export default function DashboardPage() {
           }]);
         },
       }, selectedModel, selectedPersona);
-    } catch {
+    } catch (err: any) {
+      // Check for limit reached (429)
+      if (err?.message?.includes('limit') || err?.status === 429) {
+        setUpgradeOpen(true);
+        setMessages(prev => prev.filter(m => !(m.role === 'assistant' && m.content === '')));
+        return;
+      }
       // Fallback to non-streaming
       try {
         const { message, spaceKeyword } = await chatService.sendMessage(chat._id, content, selectedModel, selectedPersona);
@@ -200,6 +209,12 @@ export default function DashboardPage() {
 
   return (
     <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden', background: '#09090b' }}>
+
+      <UpgradeModal
+        open={upgradeOpen}
+        onClose={() => setUpgradeOpen(false)}
+        messagesUsed={dailyUsed}
+      />
 
       <StatsPanel
         open={statsOpen}
