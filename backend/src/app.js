@@ -22,7 +22,7 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 
-// ─── CORS — allow local dev + Vercel production ───────────────────────────────
+// ─── CORS — allow local dev + Vercel production + Chrome extension ────────────
 const ALLOWED_ORIGINS = [
   'http://localhost:3000',
   'http://localhost:3001',
@@ -33,9 +33,14 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, Postman, curl)
     if (!origin) return callback(null, true);
-    if (ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.vercel.app')) {
-      return callback(null, true);
-    }
+    // Allow Vercel deployments
+    if (origin.endsWith('.vercel.app')) return callback(null, true);
+    // Allow Chrome extensions  ← NEW
+    if (origin.startsWith('chrome-extension://')) return callback(null, true);
+    // Allow Firefox extensions ← NEW (future-proofing)
+    if (origin.startsWith('moz-extension://')) return callback(null, true);
+    // Allow explicit whitelist
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
     callback(new Error(`CORS: Origin ${origin} not allowed`));
   },
   credentials: true,
