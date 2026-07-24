@@ -4,6 +4,7 @@ import Script from 'next/script';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { I18nProvider } from '@/context/I18nContext';
+import { ThemeProvider } from '@/context/ThemeContext';
 
 const inter = Inter({ variable: '--font-inter', subsets: ['latin'], display: 'swap' });
 const jetbrainsMono = JetBrains_Mono({ variable: '--font-mono', subsets: ['latin'], display: 'swap' });
@@ -49,12 +50,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="NOVA AI" />
       </head>
-      <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased`} style={{ background: '#09090b', color: '#fafafa', overflow: 'hidden' }}>
-        <AuthProvider>
-          <I18nProvider>
-            {children}
-          </I18nProvider>
-        </AuthProvider>
+      <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased`} style={{ background: 'var(--bg)', color: 'var(--text)', overflow: 'hidden' }}>
+        <ThemeProvider>
+          <AuthProvider>
+            <I18nProvider>
+              {children}
+            </I18nProvider>
+          </AuthProvider>
+        </ThemeProvider>
 
         {/* Register service worker for PWA */}
         <Script id="sw-register" strategy="afterInteractive">

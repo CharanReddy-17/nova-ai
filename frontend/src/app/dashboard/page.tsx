@@ -13,6 +13,8 @@ import ExportModal from '@/components/ui/ExportModal';
 import PersonaSelector, { PERSONAS } from '@/components/ui/PersonaSelector';
 import StatsPanel from '@/components/ui/StatsPanel';
 import UpgradeModal from '@/components/ui/UpgradeModal';
+import ShortcutsModal from '@/components/ui/ShortcutsModal';
+import { useTheme } from '@/context/ThemeContext';
 
 // ── Suggestion chips per persona ─────────────────────────────────────────────
 const SUGGESTIONS: Record<string, { icon: string; text: string }[]> = {
@@ -61,7 +63,9 @@ export default function DashboardPage() {
   const [exportOpen, setExportOpen]     = useState(false);
   const [statsOpen, setStatsOpen]       = useState(false);
   const [upgradeOpen, setUpgradeOpen]   = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [dailyUsed, setDailyUsed]       = useState(0);
+  const { theme, toggle: toggleTheme }  = useTheme();
 
   const [selectedPersona, setSelectedPersona] = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('nova_persona') || 'default' : 'default'
@@ -224,10 +228,19 @@ export default function DashboardPage() {
     await sendMessage(lastUser.content);
   }, [messages, activeChat, sendMessage]);
 
+  // ── Edit a user message ─────────────────────────────────────────────────────
+  const editMessage = useCallback(async (messageIndex: number, newContent: string) => {
+    if (!activeChat || isSending) return;
+    // Keep messages up to (not including) the edited one, then re-send
+    setMessages(prev => prev.slice(0, messageIndex));
+    await sendMessage(newContent);
+  }, [activeChat, isSending, sendMessage]);
+
   // ── Keyboard shortcuts ──────────────────────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'n') { e.preventDefault(); createNewChat(); }
+      if ((e.ctrlKey || e.metaKey) && e.key === '/') { e.preventDefault(); setShortcutsOpen(s => !s); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -255,6 +268,7 @@ export default function DashboardPage() {
       <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} messagesUsed={dailyUsed} />
       <StatsPanel   open={statsOpen}   onClose={() => setStatsOpen(false)}   username={user?.username} />
       <ExportModal  open={exportOpen}  onClose={() => setExportOpen(false)}  messages={messages} chatTitle={activeChat?.title} />
+      <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
       {/* ── LEFT SIDEBAR ────────────────────────────────────────────────────── */}
       <Sidebar
@@ -287,6 +301,18 @@ export default function DashboardPage() {
             <button onClick={() => setStatsOpen(true)} title="Your stats"
               style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '6px 10px', color: '#71717a', cursor: 'pointer', fontSize: 14 }}>
               📊
+            </button>
+
+            {/* Theme toggle */}
+            <button onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '6px 10px', color: '#71717a', cursor: 'pointer', fontSize: 14, transition: 'all 0.15s' }}>
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+
+            {/* Shortcuts hint */}
+            <button onClick={() => setShortcutsOpen(true)} title="Keyboard shortcuts (Ctrl+/)" 
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '6px 10px', color: '#71717a', cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>
+              ⌨️
             </button>
 
             {/* Export */}
@@ -348,6 +374,7 @@ export default function DashboardPage() {
                   isLast={i === messages.length - 1}
                   isLastAI={i === lastAIIndex}
                   onRegenerate={i === lastAIIndex && !isSending ? regenerate : undefined}
+                  onEdit={msg.role === 'user' && !isSending ? (newContent) => editMessage(i, newContent) : undefined}
                 />
               ))}
             </AnimatePresence>
