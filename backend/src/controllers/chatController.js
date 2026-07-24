@@ -1,18 +1,5 @@
 const Chat = require('../models/Chat');
 const aiService = require('../services/aiService');
-const nasaService = require('../services/nasaService');
-
-const extractSpaceKeyword = (text) => {
-  const keywords = [
-    'mercury','venus','earth','mars','jupiter','saturn','uranus','neptune',
-    'moon','sun','black hole','nebula','galaxy','asteroid','comet',
-    'supernova','pulsar','quasar','neutron star','star','milky way',
-    'andromeda','exoplanet','dwarf planet','pluto','titan','europa',
-    'io','ganymede','rings of saturn','solar system',
-  ];
-  const lower = text.toLowerCase();
-  return keywords.find(k => lower.includes(k)) || null;
-};
 
 // @route GET /api/chats
 const getChats = async (req, res) => {
@@ -75,6 +62,31 @@ const deleteChat = async (req, res) => {
   }
 };
 
+// @route POST /api/chats/:id/generate-title
+// Asks AI to summarise the first exchange into a short title
+const generateTitle = async (req, res) => {
+  try {
+    const chat = await Chat.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!chat) return res.status(404).json({ error: 'Chat not found.' });
+
+    const firstUser = chat.messages.find(m => m.role === 'user')?.content || '';
+    const firstAI   = chat.messages.find(m => m.role === 'assistant')?.content || '';
+
+    if (!firstUser) return res.json({ title: chat.title });
+
+    const prompt = [
+      { role: 'user', content: `Generate a short chat title (max 5 words, no quotes) that captures the topic of this conversation:\nUser: ${firstUser.slice(0, 200)}\nAI: ${firstAI.slice(0, 200)}` },
+    ];
+    const title = await aiService.chat(prompt, 'en', null, null);
+    const cleaned = title.replace(/^["']|["']$/g, '').trim().slice(0, 60);
+
+    await Chat.findByIdAndUpdate(chat._id, { title: cleaned });
+    res.json({ title: cleaned });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to generate title.' });
+  }
+};
+
 // @route POST /api/chats/:id/messages (non-streaming fallback)
 const sendMessage = async (req, res) => {
   try {
@@ -92,29 +104,17 @@ const sendMessage = async (req, res) => {
     const chat = await Chat.findOne({ _id: req.params.id, userId: req.user._id });
     if (!chat) return res.status(404).json({ error: 'Chat not found.' });
 
-
     chat.messages.push({ role: 'user', content });
-    if (chat.messages.length === 1 && chat.title === 'New Chat') {
-      chat.title = content.slice(0, 50) + (content.length > 50 ? '...' : '');
-    }
-
     const history = chat.messages.slice(-20).map(m => ({ role: m.role, content: m.content }));
     const aiResponse = await aiService.chat(history, req.user.preferences?.language || 'en', model || null, persona || null);
 
-    const keyword = extractSpaceKeyword(content);
-    let nasaImages = [];
-    if (keyword && (content.toLowerCase().includes('show') || content.toLowerCase().includes('image') || content.toLowerCase().includes('photo'))) {
-      try { nasaImages = await nasaService.searchImages(keyword, 3); } catch (e) {}
-    }
-
-    chat.messages.push({ role: 'assistant', content: aiResponse, nasaImages });
+    chat.messages.push({ role: 'assistant', content: aiResponse });
     await chat.save();
     freshUser.dailyMessageCount += 1;
     await freshUser.save();
 
     res.json({
-      message: { role: 'assistant', content: aiResponse, nasaImages, timestamp: new Date() },
-      spaceKeyword: keyword,
+      message: { role: 'assistant', content: aiResponse, timestamp: new Date() },
       usage: { count: freshUser.dailyMessageCount, limit: 50, plan: freshUser.plan },
     });
   } catch (err) {
@@ -122,7 +122,7 @@ const sendMessage = async (req, res) => {
   }
 };
 
-// @route POST /api/chats/:id/messages/stream  ← NEW STREAMING ENDPOINT
+// @route POST /api/chats/:id/messages/stream
 const streamMessage = async (req, res) => {
   try {
     const { content, model, persona } = req.body;
@@ -139,26 +139,17 @@ const streamMessage = async (req, res) => {
     const chat = await Chat.findOne({ _id: req.params.id, userId: req.user._id });
     if (!chat) return res.status(404).json({ error: 'Chat not found.' });
 
-    // Add user message
     chat.messages.push({ role: 'user', content });
-    if (chat.messages.length === 1 && chat.title === 'New Chat') {
-      chat.title = content.slice(0, 50) + (content.length > 50 ? '…' : '');
-    }
+    const isFirstMessage = chat.messages.length === 1;
 
     const history = chat.messages.slice(-20).map(m => ({ role: m.role, content: m.content }));
 
-    // Setup SSE headers
+    // SSE headers
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no'); // Important for Nginx/Render proxies
+    res.setHeader('X-Accel-Buffering', 'no');
     res.flushHeaders();
-
-    // Send space keyword early so UI can update 3D viewer immediately
-    const keyword = extractSpaceKeyword(content);
-    if (keyword) {
-      res.write(`event: meta\ndata: ${JSON.stringify({ spaceKeyword: keyword, title: chat.title })}\n\n`);
-    }
 
     // Stream AI response
     const stream = await aiService.chatStream(history, req.user.preferences?.language || 'en', model || null, persona || null);
@@ -172,12 +163,14 @@ const streamMessage = async (req, res) => {
       }
     }
 
-    // Save complete message to DB
+    // Save to DB
     chat.messages.push({ role: 'assistant', content: fullResponse });
     await chat.save();
+    freshUser.dailyMessageCount += 1;
+    await freshUser.save();
 
-    // Signal completion
-    res.write(`event: done\ndata: ${JSON.stringify({ spaceKeyword: keyword, title: chat.title })}\n\n`);
+    // Signal completion — include isFirstMessage so client can auto-generate title
+    res.write(`event: done\ndata: ${JSON.stringify({ title: chat.title, isFirstMessage })}\n\n`);
     res.end();
 
   } catch (err) {
@@ -191,4 +184,4 @@ const streamMessage = async (req, res) => {
   }
 };
 
-module.exports = { getChats, createChat, getChat, updateChat, deleteChat, sendMessage, streamMessage };
+module.exports = { getChats, createChat, getChat, updateChat, deleteChat, sendMessage, streamMessage, generateTitle };

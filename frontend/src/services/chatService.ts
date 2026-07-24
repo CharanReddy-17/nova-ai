@@ -4,7 +4,6 @@ export interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
-  nasaImages?: { url: string; title: string }[];
 }
 
 export interface Chat {
@@ -17,9 +16,9 @@ export interface Chat {
 }
 
 export interface StreamCallbacks {
-  onChunk: (chunk: string) => void;
-  onDone: (meta: { spaceKeyword: string | null; title: string }) => void;
-  onError: (error: string) => void;
+  onChunk:  (chunk: string) => void;
+  onDone:   (meta: { title: string; isFirstMessage: boolean }) => void;
+  onError:  (error: string) => void;
 }
 
 export const chatService = {
@@ -38,19 +37,22 @@ export const chatService = {
   deleteChat: (id: string) =>
     api.delete(`/chats/${id}`).then(r => r.data),
 
+  generateTitle: (id: string) =>
+    api.post<{ title: string }>(`/chats/${id}/generate-title`).then(r => r.data.title),
+
   // Non-streaming fallback
   sendMessage: (id: string, content: string, model?: string, persona?: string) =>
-    api.post<{ message: Message; spaceKeyword: string | null }>(`/chats/${id}/messages`, { content, model, persona }).then(r => r.data),
+    api.post<{ message: Message }>(`/chats/${id}/messages`, { content, model, persona }).then(r => r.data),
 
-  // ── Streaming message ──────────────────────────────────────────────────────
+  // ── Streaming ───────────────────────────────────────────────────────────────
   streamMessage: async (id: string, content: string, callbacks: StreamCallbacks, model?: string, persona?: string): Promise<void> => {
-    const token = localStorage.getItem('cosmic_token');
+    const token   = localStorage.getItem('cosmic_token');
     const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
     const response = await fetch(`${baseURL}/api/chats/${id}/messages/stream`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type':  'application/json',
         'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({ content, model, persona }),
@@ -74,35 +76,25 @@ export const chatService = {
 
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
-      buffer = lines.pop() || ''; // keep incomplete line in buffer
+      buffer = lines.pop() || '';
 
       for (const line of lines) {
         if (!line.trim()) continue;
-
-        // Parse SSE event type
-        if (line.startsWith('event: done')) continue;
-        if (line.startsWith('event: error')) continue;
-        if (line.startsWith('event: meta')) continue;
+        if (line.startsWith('event:')) continue;
 
         if (line.startsWith('data: ')) {
           const raw = line.slice(6).trim();
           if (!raw) continue;
-
           try {
             const parsed = JSON.parse(raw);
-
             if (parsed.chunk !== undefined) {
-              // Regular text chunk
               callbacks.onChunk(parsed.chunk);
-            } else if (parsed.spaceKeyword !== undefined && parsed.title !== undefined) {
-              // Done event OR meta event
-              callbacks.onDone({ spaceKeyword: parsed.spaceKeyword, title: parsed.title });
+            } else if (parsed.title !== undefined) {
+              callbacks.onDone({ title: parsed.title, isFirstMessage: !!parsed.isFirstMessage });
             } else if (parsed.error) {
               callbacks.onError(parsed.error);
             }
-          } catch {
-            // Non-JSON line, skip
-          }
+          } catch { /* non-JSON, skip */ }
         }
       }
     }
