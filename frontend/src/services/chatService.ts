@@ -7,12 +7,14 @@ export interface Message {
 }
 
 export interface Chat {
-  _id: string;
-  title: string;
+  _id:      string;
+  title:    string;
   messages: Message[];
   createdAt: string;
   updatedAt: string;
-  isPinned: boolean;
+  isPinned:  boolean;
+  isPublic:  boolean;
+  shareId:   string | null;
 }
 
 export interface StreamCallbacks {
@@ -39,6 +41,12 @@ export const chatService = {
 
   generateTitle: (id: string) =>
     api.post<{ title: string }>(`/chats/${id}/generate-title`).then(r => r.data.title),
+
+  shareChat: (id: string) =>
+    api.post<{ shareId: string; shareUrl: string; isPublic: boolean }>(`/chats/${id}/share`).then(r => r.data),
+
+  unshareChat: (id: string) =>
+    api.delete<{ isPublic: boolean }>(`/chats/${id}/share`).then(r => r.data),
 
   // Non-streaming fallback
   sendMessage: (id: string, content: string, model?: string, persona?: string) =>

@@ -184,4 +184,44 @@ const streamMessage = async (req, res) => {
   }
 };
 
-module.exports = { getChats, createChat, getChat, updateChat, deleteChat, sendMessage, streamMessage, generateTitle };
+// @route POST /api/chats/:id/share
+const shareChat = async (req, res) => {
+  try {
+    const chat = await Chat.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!chat) return res.status(404).json({ error: 'Chat not found.' });
+    if (chat.messages.length === 0) return res.status(400).json({ error: 'Cannot share an empty conversation.' });
+
+    // Dynamically import nanoid (ESM module)
+    let shareId = chat.shareId;
+    if (!shareId) {
+      const { nanoid } = await import('nanoid');
+      shareId = nanoid(10);
+    }
+
+    chat.isPublic = true;
+    chat.shareId  = shareId;
+    await chat.save();
+
+    const shareUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/share/${shareId}`;
+    res.json({ shareId, shareUrl, isPublic: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to create share link.' });
+  }
+};
+
+// @route DELETE /api/chats/:id/share
+const unshareChat = async (req, res) => {
+  try {
+    const chat = await Chat.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!chat) return res.status(404).json({ error: 'Chat not found.' });
+
+    chat.isPublic = false;
+    chat.shareId  = null;
+    await chat.save();
+    res.json({ isPublic: false });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to remove share link.' });
+  }
+};
+
+module.exports = { getChats, createChat, getChat, updateChat, deleteChat, sendMessage, streamMessage, generateTitle, shareChat, unshareChat };

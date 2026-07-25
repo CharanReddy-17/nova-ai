@@ -8,10 +8,12 @@ const messageSchema = new mongoose.Schema({
 
 
 const chatSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  title: { type: String, default: 'New Chat', maxlength: 100 },
+  userId:   { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  title:    { type: String, default: 'New Chat', maxlength: 100 },
   messages: [messageSchema],
   isPinned: { type: Boolean, default: false },
+  isPublic: { type: Boolean, default: false },
+  shareId:  { type: String, default: null, index: true, sparse: true },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Chat', chatSchema);

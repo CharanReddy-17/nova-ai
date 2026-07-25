@@ -10,6 +10,7 @@ const chatRoutes    = require('./routes/chats');
 const uploadRoutes  = require('./routes/uploads');
 const statsRoutes   = require('./routes/stats');
 const paymentRoutes = require('./routes/payments');
+const shareRoutes   = require('./routes/share');
 
 const app = express();
 
@@ -80,6 +81,7 @@ app.use('/api/chats',    chatRoutes);
 app.use('/api/uploads',  uploadRoutes);
 app.use('/api/stats',    statsRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/share',    shareRoutes);   // public — no auth
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 const mongoose = require('mongoose');

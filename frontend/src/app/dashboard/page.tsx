@@ -14,6 +14,7 @@ import PersonaSelector, { PERSONAS } from '@/components/ui/PersonaSelector';
 import StatsPanel from '@/components/ui/StatsPanel';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 import ShortcutsModal from '@/components/ui/ShortcutsModal';
+import ShareModal from '@/components/ui/ShareModal';
 import { useTheme } from '@/context/ThemeContext';
 
 // ── Suggestion chips per persona ─────────────────────────────────────────────
@@ -60,12 +61,15 @@ export default function DashboardPage() {
   const [isSending, setIsSending]       = useState(false);
   const [isTyping, setIsTyping]         = useState(false);
   const [chatsLoading, setChatsLoading] = useState(true);
-  const [exportOpen, setExportOpen]     = useState(false);
-  const [statsOpen, setStatsOpen]       = useState(false);
-  const [upgradeOpen, setUpgradeOpen]   = useState(false);
+  const [exportOpen, setExportOpen]       = useState(false);
+  const [statsOpen, setStatsOpen]         = useState(false);
+  const [upgradeOpen, setUpgradeOpen]     = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  const [dailyUsed, setDailyUsed]       = useState(0);
-  const { theme, toggle: toggleTheme }  = useTheme();
+  const [shareOpen, setShareOpen]         = useState(false);
+  const [shareId, setShareId]             = useState<string | null>(null);
+  const [isChatPublic, setIsChatPublic]   = useState(false);
+  const [dailyUsed, setDailyUsed]         = useState(0);
+  const { theme, toggle: toggleTheme }    = useTheme();
 
   const [selectedPersona, setSelectedPersona] = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('nova_persona') || 'default' : 'default'
@@ -106,6 +110,8 @@ export default function DashboardPage() {
 
   const loadChat = useCallback(async (chat: Chat) => {
     setActiveChat(chat);
+    setShareId(chat.shareId ?? null);
+    setIsChatPublic(chat.isPublic ?? false);
     try {
       const full = await chatService.getChat(chat._id);
       setMessages(full.messages);
@@ -119,6 +125,8 @@ export default function DashboardPage() {
       const chat = await chatService.createChat('New Chat');
       setChats(prev => [chat, ...prev]);
       setActiveChat(chat);
+      setShareId(null);
+      setIsChatPublic(false);
       setMessages([]);
     } catch {}
   }, []);
@@ -269,6 +277,17 @@ export default function DashboardPage() {
       <StatsPanel   open={statsOpen}   onClose={() => setStatsOpen(false)}   username={user?.username} />
       <ExportModal  open={exportOpen}  onClose={() => setExportOpen(false)}  messages={messages} chatTitle={activeChat?.title} />
       <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      {activeChat && (
+        <ShareModal
+          open={shareOpen}
+          onClose={() => setShareOpen(false)}
+          chatId={activeChat._id}
+          chatTitle={activeChat.title}
+          isPublic={isChatPublic}
+          shareId={shareId}
+          onShareChange={(pub, id) => { setIsChatPublic(pub); setShareId(id); }}
+        />
+      )}
 
       {/* ── LEFT SIDEBAR ────────────────────────────────────────────────────── */}
       <Sidebar
@@ -314,6 +333,14 @@ export default function DashboardPage() {
               style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '6px 10px', color: '#71717a', cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>
               ⌨️
             </button>
+
+            {/* Share */}
+            {activeChat && messages.length > 0 && (
+              <button onClick={() => setShareOpen(true)} title="Share conversation"
+                style={{ display: 'flex', alignItems: 'center', gap: 5, background: isChatPublic ? 'rgba(124,58,237,0.15)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isChatPublic ? 'rgba(124,58,237,0.35)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 8, padding: '6px 10px', color: isChatPublic ? '#a855f7' : '#71717a', cursor: 'pointer', fontSize: 12, fontWeight: 500, transition: 'all 0.15s' }}>
+                🔗 {isChatPublic ? 'Shared' : 'Share'}
+              </button>
+            )}
 
             {/* Export */}
             {activeChat && messages.length > 0 && (
