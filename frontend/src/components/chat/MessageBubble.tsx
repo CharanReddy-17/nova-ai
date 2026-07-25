@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Copy, Check, RefreshCw, User, Pencil, X } from 'lucide-react';
+import { Copy, Check, RefreshCw, User, Pencil, X, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Message } from '@/services/chatService';
 
 interface Props {
@@ -14,6 +14,8 @@ interface Props {
   isLastAI:      boolean;
   onRegenerate?: () => void;
   onEdit?:       (newContent: string) => void;
+  onReact?:      (reaction: 'up' | 'down') => void;
+  reaction?:     'up' | 'down' | null;
 }
 
 // ── Copy button ───────────────────────────────────────────────────────────────
@@ -121,7 +123,7 @@ function EditBox({ initial, onSave, onCancel }: { initial: string; onSave: (v: s
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function MessageBubble({ message, isLast, isLastAI, onRegenerate, onEdit }: Props) {
+export default function MessageBubble({ message, isLast, isLastAI, onRegenerate, onEdit, onReact, reaction }: Props) {
   const isUser = message.role === 'user';
   const [editing, setEditing] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -242,6 +244,32 @@ export default function MessageBubble({ message, isLast, isLastAI, onRegenerate,
               >
                 <RefreshCw size={11} /> Regenerate
               </button>
+            )}
+
+            {/* Reactions — only on AI messages */}
+            {!isUser && onReact && (
+              <div style={{ display: 'flex', gap: 2, marginLeft: 4 }}>
+                <motion.button
+                  whileTap={{ scale: 0.8 }}
+                  onClick={() => onReact('up')}
+                  title="Good response"
+                  style={{ display: 'flex', alignItems: 'center', background: reaction === 'up' ? 'rgba(16,185,129,0.15)' : 'none', border: reaction === 'up' ? '1px solid rgba(16,185,129,0.3)' : '1px solid transparent', borderRadius: 6, cursor: 'pointer', padding: '2px 5px', transition: 'all 0.15s', color: reaction === 'up' ? '#10b981' : '#71717a' }}
+                  onMouseEnter={e => { if (reaction !== 'up') e.currentTarget.style.color = '#10b981'; }}
+                  onMouseLeave={e => { if (reaction !== 'up') e.currentTarget.style.color = '#71717a'; }}
+                >
+                  <ThumbsUp size={11} fill={reaction === 'up' ? 'currentColor' : 'none'} />
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.8 }}
+                  onClick={() => onReact('down')}
+                  title="Poor response"
+                  style={{ display: 'flex', alignItems: 'center', background: reaction === 'down' ? 'rgba(239,68,68,0.12)' : 'none', border: reaction === 'down' ? '1px solid rgba(239,68,68,0.25)' : '1px solid transparent', borderRadius: 6, cursor: 'pointer', padding: '2px 5px', transition: 'all 0.15s', color: reaction === 'down' ? '#ef4444' : '#71717a' }}
+                  onMouseEnter={e => { if (reaction !== 'down') e.currentTarget.style.color = '#ef4444'; }}
+                  onMouseLeave={e => { if (reaction !== 'down') e.currentTarget.style.color = '#71717a'; }}
+                >
+                  <ThumbsDown size={11} fill={reaction === 'down' ? 'currentColor' : 'none'} />
+                </motion.button>
+              </div>
             )}
           </motion.div>
         )}

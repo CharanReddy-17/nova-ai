@@ -69,6 +69,8 @@ export default function DashboardPage() {
   const [shareId, setShareId]             = useState<string | null>(null);
   const [isChatPublic, setIsChatPublic]   = useState(false);
   const [dailyUsed, setDailyUsed]         = useState(0);
+  // reactions: messageIndex -> 'up'|'down'
+  const [reactions, setReactions]         = useState<Record<number, 'up' | 'down'>>({});
   const { theme, toggle: toggleTheme }    = useTheme();
 
   const [selectedPersona, setSelectedPersona] = useState(() =>
@@ -108,8 +110,10 @@ export default function DashboardPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
+  // Clear reactions when chat changes
   const loadChat = useCallback(async (chat: Chat) => {
     setActiveChat(chat);
+    setReactions({});
     setShareId(chat.shareId ?? null);
     setIsChatPublic(chat.isPublic ?? false);
     try {
@@ -127,6 +131,7 @@ export default function DashboardPage() {
       setActiveChat(chat);
       setShareId(null);
       setIsChatPublic(false);
+      setReactions({});
       setMessages([]);
     } catch {}
   }, []);
@@ -296,6 +301,7 @@ export default function DashboardPage() {
         onSelectChat={loadChat}
         onNewChat={createNewChat}
         onDeleteChat={deleteChat}
+        onUpdateChats={setChats}
         isLoading={chatsLoading}
       />
 
@@ -329,10 +335,6 @@ export default function DashboardPage() {
             </button>
 
             {/* Shortcuts hint */}
-            <button onClick={() => setShortcutsOpen(true)} title="Keyboard shortcuts (Ctrl+/)" 
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '6px 10px', color: '#71717a', cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>
-              ⌨️
-            </button>
 
             {/* Share */}
             {activeChat && messages.length > 0 && (
@@ -402,6 +404,8 @@ export default function DashboardPage() {
                   isLastAI={i === lastAIIndex}
                   onRegenerate={i === lastAIIndex && !isSending ? regenerate : undefined}
                   onEdit={msg.role === 'user' && !isSending ? (newContent) => editMessage(i, newContent) : undefined}
+                  onReact={msg.role === 'assistant' ? (r) => setReactions(prev => ({ ...prev, [i]: prev[i] === r ? undefined as any : r })) : undefined}
+                  reaction={reactions[i] ?? null}
                 />
               ))}
             </AnimatePresence>
