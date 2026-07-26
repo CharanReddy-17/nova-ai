@@ -5,6 +5,7 @@ import { Search, Pin, Trash2, LogOut, Plus, Settings } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { Chat, chatService } from '@/services/chatService';
+import { useIsMobile } from '@/hooks/useMediaQuery';
 import SearchModal from '@/components/ui/SearchModal';
 
 interface SidebarProps {
@@ -15,6 +16,9 @@ interface SidebarProps {
   onDeleteChat:  (id: string) => void;
   onUpdateChats: (chats: Chat[]) => void;
   isLoading:     boolean;
+  // Mobile drawer
+  isOpen?:       boolean;
+  onClose?:      () => void;
 }
 
 function groupChats(chats: Chat[]) {
@@ -149,9 +153,10 @@ function SectionLabel({ label }: { label: string }) {
 }
 
 // ── Main sidebar ──────────────────────────────────────────────────────────────
-export default function Sidebar({ chats, activeChat, onSelectChat, onNewChat, onDeleteChat, onUpdateChats, isLoading }: SidebarProps) {
+export default function Sidebar({ chats, activeChat, onSelectChat, onNewChat, onDeleteChat, onUpdateChats, isLoading, isOpen, onClose }: SidebarProps) {
   const { user, logout }    = useAuth();
   const { theme, toggle }   = useTheme();
+  const isMobile            = useIsMobile();
   const [searchOpen, setSearchOpen] = useState(false);
   const { pinned, today, yesterday, older } = groupChats(chats);
   const initials = user?.username ? user.username.slice(0, 2).toUpperCase() : 'U';
@@ -181,6 +186,16 @@ export default function Sidebar({ chats, activeChat, onSelectChat, onNewChat, on
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
+  // Close drawer on chat select (mobile)
+  const handleSelectChat = (chat: Chat) => {
+    onSelectChat(chat);
+    if (isMobile) onClose?.();
+  };
+  const handleNewChat = () => {
+    onNewChat();
+    if (isMobile) onClose?.();
+  };
+
   const renderGroup = (group: Chat[], isPinned: boolean) =>
     group.map(c => (
       <ChatItem key={c._id} chat={c} active={activeChat?._id === c._id} isPinned={isPinned}
@@ -194,12 +209,20 @@ export default function Sidebar({ chats, activeChat, onSelectChat, onNewChat, on
   return (
     <>
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} chats={chats}
-        onSelectChat={chat => { onSelectChat(chat); setSearchOpen(false); }} />
+        onSelectChat={chat => { onSelectChat(chat); setSearchOpen(false); if (isMobile) onClose?.(); }} />
 
-      <div style={{
-        width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column',
-        background: 'var(--bg2, #111113)', borderRight: '1px solid var(--border)', height: '100%',
-      }}>
+      {/* Mobile backdrop */}
+      {isMobile && isOpen && (
+        <div className="sidebar-overlay" style={{ display: 'block' }} onClick={onClose} />
+      )}
+
+      <div
+        className={isMobile ? `sidebar-drawer${isOpen ? ' open' : ''}` : ''}
+        style={{
+          width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column',
+          background: 'var(--bg2, #111113)', borderRight: '1px solid var(--border)', height: '100%',
+        }}
+      >
 
         {/* ── Header ── */}
         <div style={{ padding: '14px 12px 10px', borderBottom: '1px solid var(--border)' }}>
@@ -218,14 +241,12 @@ export default function Sidebar({ chats, activeChat, onSelectChat, onNewChat, on
             </button>
           </div>
 
-          <button
-            onClick={onNewChat}
-            style={{
-              width: '100%', padding: '9px 12px', fontSize: 13, borderRadius: 10,
-              background: 'linear-gradient(135deg,#7c3aed,#a855f7)', border: 'none',
-              color: '#fff', cursor: 'pointer', fontWeight: 600, display: 'flex',
-              alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'opacity 0.15s',
-            }}
+          <button onClick={onNewChat} style={{
+            width: '100%', padding: '9px 12px', fontSize: 13, borderRadius: 10,
+            background: 'linear-gradient(135deg,#7c3aed,#a855f7)', border: 'none',
+            color: '#fff', cursor: 'pointer', fontWeight: 600, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'opacity 0.15s',
+          }}
             onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
             onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
           >

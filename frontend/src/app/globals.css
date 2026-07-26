@@ -480,3 +480,89 @@ code, pre { font-family: 'JetBrains Mono', monospace; }
 .prose table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
 .prose th { background: rgba(124,58,237,0.15); padding: 8px 12px; text-align: left; border: 1px solid var(--border); }
 .prose td { padding: 8px 12px; border: 1px solid var(--border); }
+
+/* ── Responsive / Mobile ─────────────────────────────────────────────────── */
+
+/* Sidebar overlay backdrop (mobile only) */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px);
+  z-index: 49;
+}
+
+/* Sidebar drawer on mobile */
+.sidebar-drawer {
+  position: fixed !important;
+  top: 0; left: 0; height: 100%;
+  z-index: 50;
+  transform: translateX(-100%);
+  transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 4px 0 32px rgba(0,0,0,0.5);
+}
+.sidebar-drawer.open {
+  transform: translateX(0);
+}
+
+/* Show on mobile only */
+.mobile-only { display: none !important; }
+/* Hide on mobile */
+.desktop-only {}
+
+@media (max-width: 768px) {
+  /* Sidebar becomes a drawer */
+  .sidebar-drawer {
+    display: flex !important;
+  }
+  .sidebar-overlay {
+    display: block;
+  }
+  /* Hide on desktop, show on mobile */
+  .mobile-only { display: flex !important; }
+  /* Hide on mobile */
+  .desktop-only { display: none !important; }
+
+  /* Dashboard main area goes full width */
+  .dashboard-center {
+    min-width: 0;
+  }
+
+  /* Topbar compact */
+  .topbar-title {
+    font-size: 13px !important;
+    max-width: 160px !important;
+  }
+  .topbar-actions {
+    gap: 6px !important;
+  }
+  .topbar-actions button {
+    padding: 5px 8px !important;
+    font-size: 12px !important;
+  }
+
+  /* Message bubbles go wider */
+  .msg-user  { max-width: 90% !important; }
+  .msg-ai    { max-width: 97% !important; }
+
+  /* Message area padding */
+  .messages-area {
+    padding: 12px 12px 4px !important;
+  }
+
+  /* Input bar */
+  .input-bar {
+    padding: 6px 12px 10px !important;
+  }
+
+  /* Empty state suggestion chips: 1 col on narrow */
+  .suggestion-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar-actions .hide-xs { display: none !important; }
+}
+

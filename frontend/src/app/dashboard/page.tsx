@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { chatService, Chat, Message } from '@/services/chatService';
+import { useIsMobile } from '@/hooks/useMediaQuery';
 import Sidebar from '@/components/layout/Sidebar';
 import MessageBubble from '@/components/chat/MessageBubble';
 import MessageInput from '@/components/chat/MessageInput';
@@ -72,6 +73,8 @@ export default function DashboardPage() {
   // reactions: messageIndex -> 'up'|'down'
   const [reactions, setReactions]         = useState<Record<number, 'up' | 'down'>>({});
   const { theme, toggle: toggleTheme }    = useTheme();
+  const isMobile                          = useIsMobile();
+  const [sidebarOpen, setSidebarOpen]     = useState(false);
 
   const [selectedPersona, setSelectedPersona] = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('nova_persona') || 'default' : 'default'
@@ -295,15 +298,32 @@ export default function DashboardPage() {
       )}
 
       {/* ── LEFT SIDEBAR ────────────────────────────────────────────────────── */}
-      <Sidebar
-        chats={chats}
-        activeChat={activeChat}
-        onSelectChat={loadChat}
-        onNewChat={createNewChat}
-        onDeleteChat={deleteChat}
-        onUpdateChats={setChats}
-        isLoading={chatsLoading}
-      />
+      {/* On desktop: static. On mobile: hidden until hamburger is tapped (handled inside Sidebar) */}
+      {!isMobile && (
+        <Sidebar
+          chats={chats}
+          activeChat={activeChat}
+          onSelectChat={loadChat}
+          onNewChat={createNewChat}
+          onDeleteChat={deleteChat}
+          onUpdateChats={setChats}
+          isLoading={chatsLoading}
+        />
+      )}
+      {/* Mobile drawer version */}
+      {isMobile && (
+        <Sidebar
+          chats={chats}
+          activeChat={activeChat}
+          onSelectChat={loadChat}
+          onNewChat={createNewChat}
+          onDeleteChat={deleteChat}
+          onUpdateChats={setChats}
+          isLoading={chatsLoading}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
+      )}
 
       {/* ── CENTER PANEL ────────────────────────────────────────────────────── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
@@ -311,30 +331,40 @@ export default function DashboardPage() {
         {/* Top bar */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 20px', height: 52, flexShrink: 0,
-          borderBottom: '1px solid rgba(255,255,255,0.05)', background: '#09090b',
+          padding: '0 16px', height: 52, flexShrink: 0,
+          borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'var(--bg)',
         }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: '#a1a1aa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 300 }}>
+          {/* Hamburger — mobile only */}
+          <button
+            className="mobile-only"
+            onClick={() => setSidebarOpen(s => !s)}
+            aria-label="Open menu"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted2)', padding: '6px 8px', borderRadius: 8, marginRight: 4 }}
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="2" y1="4" x2="16" y2="4"/><line x1="2" y1="9" x2="16" y2="9"/><line x1="2" y1="14" x2="16" y2="14"/>
+            </svg>
+          </button>
+
+          <span className="topbar-title" style={{ fontSize: 14, fontWeight: 600, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 300 }}>
             {activeChat?.title || 'New Chat'}
           </span>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <PersonaSelector selectedPersona={selectedPersona} onSelect={handlePersonaSelect} />
-            <ModelSelector   selectedModel={selectedModel}     onSelect={handleModelSelect} />
+          <div className="topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span className="desktop-only"><PersonaSelector selectedPersona={selectedPersona} onSelect={handlePersonaSelect} /></span>
+            <span className="desktop-only"><ModelSelector   selectedModel={selectedModel}     onSelect={handleModelSelect} /></span>
 
             {/* Stats */}
-            <button onClick={() => setStatsOpen(true)} title="Your stats"
+            <button onClick={() => setStatsOpen(true)} title="Your stats" className="hide-xs"
               style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '6px 10px', color: '#71717a', cursor: 'pointer', fontSize: 14 }}>
               📊
             </button>
 
-            {/* Theme toggle */}
-            <button onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '6px 10px', color: '#71717a', cursor: 'pointer', fontSize: 14, transition: 'all 0.15s' }}>
-              {theme === 'dark' ? '☀️' : '🌙'}
-            </button>
-
             {/* Shortcuts hint */}
+            <button onClick={() => setShortcutsOpen(true)} title="Keyboard shortcuts (Ctrl+/)" className="hide-xs"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '6px 10px', color: '#71717a', cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>
+              ⌨️
+            </button>
 
             {/* Share */}
             {activeChat && messages.length > 0 && (
@@ -355,7 +385,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Messages */}
-        <div className="scrollbar-thin" style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 8px' }}>
+        <div className="messages-area scrollbar-thin" style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 8px' }}>
           <div style={{ maxWidth: 760, margin: '0 auto' }}>
 
             {/* Empty state */}
@@ -375,7 +405,7 @@ export default function DashboardPage() {
                 <p style={{ color: '#52525b', fontSize: 14, marginBottom: 32 }}>
                   {activePersona?.tagline || 'Ask me anything'} · <kbd style={{ background: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 4, padding: '1px 5px', fontSize: 11, color: '#71717a' }}>Ctrl+N</kbd> new chat
                 </p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, maxWidth: 520, margin: '0 auto', textAlign: 'left' }}>
+                <div className="suggestion-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, maxWidth: 520, margin: '0 auto', textAlign: 'left' }}>
                   {activeSuggestions.map(s => (
                     <button key={s.text} onClick={() => sendMessage(s.text)}
                       style={{
@@ -418,7 +448,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Input */}
-        <div style={{ padding: '8px 20px 16px', flexShrink: 0 }}>
+        <div className="input-bar" style={{ padding: '8px 20px 16px', flexShrink: 0 }}>
           <div style={{ maxWidth: 760, margin: '0 auto' }}>
             <MessageInput onSend={sendMessage} isSending={isSending} placeholder={`Message ${activePersona?.name || 'NOVA AI'}…`} />
             <p style={{ textAlign: 'center', marginTop: 8, fontSize: 11, color: '#3f3f46' }}>

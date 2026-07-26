@@ -150,7 +150,7 @@ export default function MessageBubble({ message, isLast, isLastAI, onRegenerate,
         </div>
       )}
 
-      <div style={{ maxWidth: isUser ? '72%' : '85%', display: 'flex', flexDirection: 'column', gap: 4, alignItems: isUser ? 'flex-end' : 'flex-start' }}>
+      <div className={isUser ? 'msg-user' : 'msg-ai'} style={{ maxWidth: isUser ? '72%' : '85%', display: 'flex', flexDirection: 'column', gap: 4, alignItems: isUser ? 'flex-end' : 'flex-start' }}>
 
         {/* Bubble / edit mode */}
         {isUser && editing ? (
