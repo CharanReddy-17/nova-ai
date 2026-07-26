@@ -151,6 +151,24 @@ export default function DashboardPage() {
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || isSending) return;
 
+    // ── /imagine command ───────────────────────────────────────────────────────
+    const imagineMatch = content.match(/^\/imagine\s+(.+)/i);
+    if (imagineMatch) {
+      const prompt = imagineMatch[1].trim();
+      const encoded = encodeURIComponent(prompt);
+      const imageUrl = `https://image.pollinations.ai/prompt/${encoded}?width=1024&height=768&nologo=true&enhance=true&seed=${Date.now()}`;
+
+      const userMsg: Message  = { role: 'user',      content: `/imagine ${prompt}`, timestamp: new Date().toISOString() };
+      const imageMsg: Message = { role: 'assistant', content: prompt, imageUrl,    timestamp: new Date().toISOString() };
+      setMessages(prev => [...prev, userMsg, imageMsg]);
+
+      // Tab notification
+      if (document.hidden) {
+        document.title = `🎨 Image ready — NOVA AI`;
+      }
+      return;
+    }
+
     let chat = activeChat;
     if (!chat) {
       try {
@@ -166,7 +184,7 @@ export default function DashboardPage() {
     setIsTyping(true);
 
     let streamedContent = '';
-    const streamingMsg: Message = { role: 'assistant', content: '', timestamp: new Date().toISOString() };
+    const streamingMsg: Message = { role: 'assistant', content: '', isStreaming: true, timestamp: new Date().toISOString() };
     const chatId = chat._id;
 
     try {
@@ -178,14 +196,25 @@ export default function DashboardPage() {
             const updated = [...prev];
             const last = updated[updated.length - 1];
             if (last?.role === 'assistant') {
-              updated[updated.length - 1] = { ...last, content: streamedContent };
+              updated[updated.length - 1] = { ...last, content: streamedContent, isStreaming: true };
             } else {
-              updated.push({ ...streamingMsg, content: streamedContent });
+              updated.push({ ...streamingMsg, content: streamedContent, isStreaming: true });
             }
             return updated;
           });
         },
         onDone: ({ title, isFirstMessage }) => {
+          // Mark streaming done (removes cursor)
+          setMessages(prev => {
+            const updated = [...prev];
+            const last = updated[updated.length - 1];
+            if (last?.role === 'assistant') updated[updated.length - 1] = { ...last, isStreaming: false };
+            return updated;
+          });
+          // Tab notification when page is hidden
+          if (document.hidden) {
+            document.title = `💬 New reply — NOVA AI`;
+          }
           // Update sidebar title
           setChats(prev => prev.map(c =>
             c._id === chatId ? { ...c, title: title || c.title, updatedAt: new Date().toISOString() } : c
@@ -199,6 +228,12 @@ export default function DashboardPage() {
         },
         onError: (error) => {
           setIsTyping(false);
+          setMessages(prev => {
+            const updated = [...prev];
+            const last = updated[updated.length - 1];
+            if (last?.role === 'assistant') updated[updated.length - 1] = { ...last, isStreaming: false };
+            return updated;
+          });
           if (error?.includes('limit') || error?.includes('429')) {
             setUpgradeOpen(true);
             setMessages(prev => prev.filter(m => !(m.role === 'assistant' && m.content === '')));
@@ -217,10 +252,10 @@ export default function DashboardPage() {
           const { message } = await chatService.sendMessage(chatId, content, selectedModel, selectedPersona);
           setMessages(prev => {
             const updated = prev.filter(m => !(m.role === 'assistant' && m.content === ''));
-            return [...updated, message];
+            return [...updated, { ...message, isStreaming: false }];
           });
         } catch {
-          setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ AI is temporarily unavailable. Please try again.', timestamp: new Date().toISOString() }]);
+          setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ AI is temporarily unavailable. Please try again.', isStreaming: false, timestamp: new Date().toISOString() }]);
         }
       }
     } finally {
@@ -251,6 +286,13 @@ export default function DashboardPage() {
     setMessages(prev => prev.slice(0, messageIndex));
     await sendMessage(newContent);
   }, [activeChat, isSending, sendMessage]);
+
+  // ── Tab title notification — reset on focus ─────────────────────────────────
+  useEffect(() => {
+    const handleFocus = () => { document.title = 'NOVA AI — Chat Smarter. Think Deeper.'; };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
 
   // ── Keyboard shortcuts ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -420,6 +462,20 @@ export default function DashboardPage() {
                       <span style={{ fontSize: 13, color: '#a1a1aa', lineHeight: 1.4 }}>{s.text}</span>
                     </button>
                   ))}
+
+                  {/* /imagine chip */}
+                  <button onClick={() => sendMessage('/imagine a futuristic city at sunset, digital art')}
+                    style={{
+                      background: 'rgba(236,72,153,0.06)', border: '1px solid rgba(236,72,153,0.2)',
+                      borderRadius: 12, padding: '12px 14px', cursor: 'pointer', textAlign: 'left',
+                      transition: 'all 0.15s', display: 'flex', alignItems: 'flex-start', gap: 10,
+                    }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(236,72,153,0.12)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(236,72,153,0.35)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(236,72,153,0.06)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(236,72,153,0.2)'; }}
+                  >
+                    <span style={{ fontSize: 18, flexShrink: 0 }}>🎨</span>
+                    <span style={{ fontSize: 13, color: '#a1a1aa', lineHeight: 1.4 }}><code style={{ color: '#f9a8d4', fontSize: 12 }}>/imagine</code> Generate an image with AI</span>
+                  </button>
                 </div>
               </motion.div>
             )}
@@ -450,9 +506,9 @@ export default function DashboardPage() {
         {/* Input */}
         <div className="input-bar" style={{ padding: '8px 20px 16px', flexShrink: 0 }}>
           <div style={{ maxWidth: 760, margin: '0 auto' }}>
-            <MessageInput onSend={sendMessage} isSending={isSending} placeholder={`Message ${activePersona?.name || 'NOVA AI'}…`} />
+            <MessageInput onSend={sendMessage} isSending={isSending} placeholder={`Message ${activePersona?.name || 'NOVA AI'}… or /imagine a prompt`} />
             <p style={{ textAlign: 'center', marginTop: 8, fontSize: 11, color: '#3f3f46' }}>
-              NOVA AI can make mistakes. Verify important information.
+              NOVA AI can make mistakes. Verify important info. Try <code style={{ color: '#f9a8d4', background: 'rgba(236,72,153,0.1)', padding: '0 4px', borderRadius: 4, fontSize: 11 }}>/imagine a sunset</code> to generate images.
             </p>
           </div>
         </div>

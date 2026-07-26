@@ -71,6 +71,22 @@ a { color: var(--primary2); text-decoration: none; }
 a:hover { text-decoration: underline; }
 code, pre { font-family: 'JetBrains Mono', monospace; }
 
+/* Streaming cursor blink */
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+.streaming-cursor::after {
+  content: '▋';
+  display: inline-block;
+  color: #a855f7;
+  font-size: 0.85em;
+  margin-left: 2px;
+  animation: cursorBlink 0.8s ease-in-out infinite;
+  vertical-align: middle;
+}
+
+
 /* ── Gradient utilities ──────────────────────────────────────────────────── */
 .gradient-text {
   background: linear-gradient(135deg, #fff 0%, #a855f7 50%, #ec4899 100%);
@@ -480,6 +496,16 @@ code, pre { font-family: 'JetBrains Mono', monospace; }
 .prose table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
 .prose th { background: rgba(124,58,237,0.15); padding: 8px 12px; text-align: left; border: 1px solid var(--border); }
 .prose td { padding: 8px 12px; border: 1px solid var(--border); }
+
+/* ── nova-markdown (AI bubble markdown) ──────────────────────────────────── */
+.nova-markdown { font-size: 14px; line-height: 1.7; color: var(--text2, #e4e4e7); }
+.nova-markdown p { margin: 6px 0; color: inherit; }
+.nova-markdown ul, .nova-markdown ol { padding-left: 20px; margin: 8px 0; }
+.nova-markdown li { margin: 4px 0; }
+.nova-markdown h1,.nova-markdown h2,.nova-markdown h3 { margin: 14px 0 6px; font-weight: 700; color: var(--text); }
+.nova-markdown strong { font-weight: 600; color: var(--text); }
+.nova-markdown em { color: #c4b5fd; font-style: italic; }
+
 
 /* ── Responsive / Mobile ─────────────────────────────────────────────────── */
 

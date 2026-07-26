@@ -1,10 +1,13 @@
 import api from './api';
 
 export interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: string;
+  role:        'user' | 'assistant';
+  content:     string;
+  timestamp:   string;
+  imageUrl?:   string;   // set for /imagine results
+  isStreaming?: boolean; // set during live streaming
 }
+
 
 export interface Chat {
   _id:      string;
