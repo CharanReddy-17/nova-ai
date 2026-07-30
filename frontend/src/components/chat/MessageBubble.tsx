@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Copy, Check, RefreshCw, User, Pencil, X, ThumbsUp, ThumbsDown, Download, ZoomIn } from 'lucide-react';
+import { Copy, Check, RefreshCw, User, Pencil, X, ThumbsUp, ThumbsDown, Download, ZoomIn, Volume2, VolumeX } from 'lucide-react';
 import { Message } from '@/services/chatService';
 
 interface Props {
@@ -175,9 +175,43 @@ function ImageBubble({ imageUrl, prompt }: { imageUrl: string; prompt: string })
 export default function MessageBubble({ message, isLast, isLastAI, onRegenerate, onEdit, onReact, reaction }: Props) {
   const isUser    = message.role === 'user';
   const isImage   = !!message.imageUrl;
-  const [editing, setEditing] = useState(false);
-  const [hovered, setHovered] = useState(false);
+  const [editing,   setEditing]   = useState(false);
+  const [hovered,   setHovered]   = useState(false);
+  const [speaking,  setSpeaking]  = useState(false);
   const time = new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  // ─ TTS ───────────────────────────────────────────────────────────────
+  const speak = useCallback(() => {
+    if (!('speechSynthesis' in window)) return;
+    if (speaking) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
+    // Strip markdown syntax for cleaner speech
+    const plainText = message.content
+      .replace(/```[\s\S]*?```/g, 'code block.')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/#{1,6}\s/g, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .trim();
+    const utterance = new SpeechSynthesisUtterance(plainText);
+    utterance.rate  = 1.05;
+    utterance.pitch = 1;
+    // Prefer a natural-sounding English voice if available
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v => v.lang.startsWith('en') && v.localService);
+    if (preferred) utterance.voice = preferred;
+    utterance.onend   = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+    setSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  }, [speaking, message.content]);
+
+  // Stop speech when component unmounts
+  useEffect(() => () => { window.speechSynthesis?.cancel(); }, []);
 
   const handleSave = (newContent: string) => {
     setEditing(false);
@@ -273,6 +307,26 @@ export default function MessageBubble({ message, isLast, isLastAI, onRegenerate,
           >
             <span style={{ fontSize: 11, color: '#52525b' }}>{time}</span>
             <CopyBtn text={message.content} size={12} />
+
+            {/* TTS — AI messages only, not streaming */}
+            {!isUser && !message.isStreaming && 'speechSynthesis' in (typeof window !== 'undefined' ? window : {}) && (
+              <motion.button
+                whileTap={{ scale: 0.85 }}
+                onClick={speak}
+                title={speaking ? 'Stop reading' : 'Read aloud'}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 3,
+                  background: speaking ? 'rgba(124,58,237,0.12)' : 'none',
+                  border: speaking ? '1px solid rgba(124,58,237,0.3)' : '1px solid transparent',
+                  borderRadius: 6, cursor: 'pointer', padding: '2px 5px',
+                  color: speaking ? '#a855f7' : '#71717a', transition: 'all 0.15s', fontSize: 11,
+                }}
+                onMouseEnter={e => { if (!speaking) e.currentTarget.style.color = '#a855f7'; }}
+                onMouseLeave={e => { if (!speaking) e.currentTarget.style.color = '#71717a'; }}
+              >
+                {speaking ? <VolumeX size={11} /> : <Volume2 size={11} />}
+              </motion.button>
+            )}
 
             {/* Edit (user only) */}
             {isUser && onEdit && (
