@@ -16,6 +16,8 @@ const chatSchema = new mongoose.Schema({
   isPinned: { type: Boolean, default: false },
   isPublic: { type: Boolean, default: false },
   shareId:  { type: String, default: null, index: true, sparse: true },
+  folder:   { type: String, default: null, maxlength: 50 },  // null = no folder
 }, { timestamps: true });
+
 
 module.exports = mongoose.model('Chat', chatSchema);

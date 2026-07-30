@@ -37,22 +37,73 @@ function CopyBtn({ text, size = 14 }: { text: string; size?: number }) {
   );
 }
 
-// ── Code block ────────────────────────────────────────────────────────────────
+// ── Code block (with optional JS runner) ────────────────────────────────────
+const RUNNABLE_LANGS = new Set(['javascript', 'js', 'typescript', 'ts']);
+
 function CodeBlock({ language, children }: { language: string; children: string }) {
-  const [copied, setCopied] = useState(false);
+  const [copied,    setCopied]    = useState(false);
+  const [output,    setOutput]    = useState<string | null>(null);
+  const [running,   setRunning]   = useState(false);
+  const [runError,  setRunError]  = useState(false);
+  const canRun = RUNNABLE_LANGS.has((language || '').toLowerCase());
+
   const copy = useCallback(async () => {
     await navigator.clipboard.writeText(children);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, [children]);
 
+  const run = useCallback(() => {
+    setRunning(true);
+    setOutput(null);
+    setRunError(false);
+    const logs: string[] = [];
+    const origLog   = console.log;
+    const origWarn  = console.warn;
+    const origError = console.error;
+    // Capture console output
+    console.log   = (...a) => { logs.push(a.map(String).join(' ')); };
+    console.warn  = (...a) => { logs.push('⚠️ ' + a.map(String).join(' ')); };
+    console.error = (...a) => { logs.push('❌ ' + a.map(String).join(' ')); };
+    let result: string;
+    try {
+      // Wrap in IIFE so return works, 3-second timeout via sync execution
+      const fn = new Function(children);
+      const val = fn();
+      if (val !== undefined) logs.push('→ ' + JSON.stringify(val, null, 2));
+      result = logs.length ? logs.join('\n') : '(no output)';
+      setRunError(false);
+    } catch (e: any) {
+      result = '❌ ' + (e?.message || String(e));
+      setRunError(true);
+    } finally {
+      console.log   = origLog;
+      console.warn  = origWarn;
+      console.error = origError;
+      setOutput(result!);
+      setRunning(false);
+    }
+  }, [children]);
+
   return (
     <div style={{ position: 'relative', margin: '10px 0', borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px', background: '#1a1a2e', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <span style={{ fontSize: 11, color: '#71717a', fontFamily: 'monospace', letterSpacing: '0.04em' }}>{language || 'code'}</span>
-        <button onClick={copy} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: copied ? '#10b981' : '#71717a', fontSize: 11, fontFamily: 'inherit', padding: '2px 6px', transition: 'color 0.15s' }}>
-          {copied ? <Check size={11} /> : <Copy size={11} />} {copied ? 'Copied!' : 'Copy'}
-        </button>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {/* Run button — JS/TS only */}
+          {canRun && (
+            <button onClick={run} disabled={running}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 6, cursor: 'pointer', color: '#10b981', fontSize: 11, fontFamily: 'inherit', padding: '2px 8px', transition: 'all 0.15s', fontWeight: 600 }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(16,185,129,0.2)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(16,185,129,0.1)')}
+            >
+              ▶ {running ? 'Running…' : 'Run'}
+            </button>
+          )}
+          <button onClick={copy} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: copied ? '#10b981' : '#71717a', fontSize: 11, fontFamily: 'inherit', padding: '2px 6px', transition: 'color 0.15s' }}>
+            {copied ? <Check size={11} /> : <Copy size={11} />} {copied ? 'Copied!' : 'Copy'}
+          </button>
+        </div>
       </div>
       <SyntaxHighlighter
         language={language || 'text'} style={oneDark}
@@ -62,9 +113,25 @@ function CodeBlock({ language, children }: { language: string; children: string 
       >
         {children}
       </SyntaxHighlighter>
+
+      {/* Output panel */}
+      {output !== null && (
+        <div style={{ background: runError ? 'rgba(239,68,68,0.06)' : 'rgba(16,185,129,0.05)', borderTop: `1px solid ${runError ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.15)'}`, padding: '10px 14px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <span style={{ fontSize: 11, color: runError ? '#ef4444' : '#10b981', fontWeight: 600, fontFamily: 'monospace' }}>
+              {runError ? '❌ Error' : '▶ Output'}
+            </span>
+            <button onClick={() => setOutput(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#52525b', fontSize: 11, fontFamily: 'inherit' }}>clear</button>
+          </div>
+          <pre style={{ margin: 0, fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: runError ? '#fca5a5' : '#d4d4d8', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+            {output}
+          </pre>
+        </div>
+      )}
     </div>
   );
 }
+
 
 // ── Inline edit ───────────────────────────────────────────────────────────────
 function EditBox({ initial, onSave, onCancel }: { initial: string; onSave: (v: string) => void; onCancel: () => void }) {
@@ -107,10 +174,24 @@ function EditBox({ initial, onSave, onCancel }: { initial: string; onSave: (v: s
 }
 
 // ── Generated image bubble ────────────────────────────────────────────────────
-function ImageBubble({ imageUrl, prompt }: { imageUrl: string; prompt: string }) {
-  const [loaded,   setLoaded]   = useState(false);
-  const [errored,  setErrored]  = useState(false);
-  const [lightbox, setLightbox] = useState(false);
+function ImageBubble({ imageUrl: initialUrl, prompt: initialPrompt }: { imageUrl: string; prompt: string }) {
+  const [url,         setUrl]       = useState(initialUrl);
+  const [prompt,      setPrompt]    = useState(initialPrompt);
+  const [loaded,      setLoaded]    = useState(false);
+  const [errored,     setErrored]   = useState(false);
+  const [lightbox,    setLightbox]  = useState(false);
+  const [editPrompt,  setEditPrompt] = useState(false);
+  const [editVal,     setEditVal]   = useState(initialPrompt);
+
+  const reroll = useCallback((newPrompt?: string) => {
+    const p = newPrompt ?? prompt;
+    const encoded = encodeURIComponent(p);
+    setLoaded(false);
+    setErrored(false);
+    setPrompt(p);
+    setUrl(`https://image.pollinations.ai/prompt/${encoded}?width=1024&height=768&nologo=true&enhance=true&seed=${Date.now()}`);
+    setEditPrompt(false);
+  }, [prompt]);
 
   return (
     <>
@@ -122,11 +203,8 @@ function ImageBubble({ imageUrl, prompt }: { imageUrl: string; prompt: string })
           </div>
         )}
 
-        {/* The image */}
         {!errored && (
-          <img
-            src={imageUrl}
-            alt={prompt}
+          <img src={url} alt={prompt}
             onLoad={() => setLoaded(true)}
             onError={() => setErrored(true)}
             style={{ display: loaded ? 'block' : 'none', width: '100%', cursor: 'zoom-in' }}
@@ -136,18 +214,19 @@ function ImageBubble({ imageUrl, prompt }: { imageUrl: string; prompt: string })
 
         {errored && (
           <div style={{ padding: 24, textAlign: 'center', color: '#71717a', fontSize: 13 }}>
-            ⚠️ Image generation failed. Try a different prompt.
+            ⚠️ Generation failed.
+            <button onClick={() => reroll()} style={{ display: 'block', margin: '8px auto 0', background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 8, padding: '4px 12px', color: '#a855f7', cursor: 'pointer', fontSize: 12 }}>Retry</button>
           </div>
         )}
 
-        {/* Overlay actions */}
+        {/* Overlay action buttons */}
         {loaded && (
           <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 6 }}>
             <button onClick={() => setLightbox(true)} title="View full size"
               style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '5px 8px', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center' }}>
               <ZoomIn size={13} />
             </button>
-            <a href={imageUrl} download={`nova-${Date.now()}.jpg`} target="_blank" rel="noopener noreferrer" title="Download"
+            <a href={url} download={`nova-${Date.now()}.jpg`} target="_blank" rel="noopener noreferrer" title="Download"
               style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '5px 8px', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
               <Download size={13} />
             </a>
@@ -155,15 +234,53 @@ function ImageBubble({ imageUrl, prompt }: { imageUrl: string; prompt: string })
         )}
       </div>
 
-      {/* Prompt caption */}
-      <p style={{ fontSize: 11, color: '#52525b', marginTop: 4, fontStyle: 'italic', maxWidth: 420 }}>
-        🎨 "{prompt}"
-      </p>
+      {/* Caption + variation controls */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5, maxWidth: 420, flexWrap: 'wrap' }}>
+        <p style={{ fontSize: 11, color: '#52525b', fontStyle: 'italic', margin: 0, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          🎨 "{prompt}"
+        </p>
+        <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+          {/* Re-roll same prompt */}
+          <button onClick={() => reroll()} title="Generate a new variation"
+            style={{ display: 'flex', alignItems: 'center', gap: 3, background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.25)', borderRadius: 7, padding: '3px 8px', cursor: 'pointer', color: '#a855f7', fontSize: 11, fontFamily: 'inherit', transition: 'all 0.15s' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(124,58,237,0.2)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(124,58,237,0.1)')}
+          >
+            🔄 Variation
+          </button>
+          {/* Edit prompt */}
+          <button onClick={() => { setEditVal(prompt); setEditPrompt(v => !v); }} title="Edit prompt"
+            style={{ display: 'flex', alignItems: 'center', gap: 3, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, padding: '3px 8px', cursor: 'pointer', color: '#71717a', fontSize: 11, fontFamily: 'inherit', transition: 'all 0.15s' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#a1a1aa')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#71717a')}
+          >
+            ✏️ Edit prompt
+          </button>
+        </div>
+      </div>
+
+      {/* Edit prompt input */}
+      {editPrompt && (
+        <div style={{ marginTop: 6, maxWidth: 420, display: 'flex', gap: 6 }}>
+          <input
+            value={editVal}
+            onChange={e => setEditVal(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && editVal.trim()) reroll(editVal.trim()); if (e.key === 'Escape') setEditPrompt(false); }}
+            autoFocus
+            placeholder="New prompt…"
+            style={{ flex: 1, background: '#18181b', border: '1px solid rgba(124,58,237,0.4)', borderRadius: 8, padding: '6px 10px', color: '#fafafa', fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
+          />
+          <button onClick={() => { if (editVal.trim()) reroll(editVal.trim()); }}
+            style={{ background: 'linear-gradient(135deg,#7c3aed,#a855f7)', border: 'none', borderRadius: 8, padding: '6px 14px', color: '#fff', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+            Go
+          </button>
+        </div>
+      )}
 
       {/* Lightbox */}
       {lightbox && (
         <div onClick={() => setLightbox(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out', padding: 24 }}>
-          <img src={imageUrl} alt={prompt} style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 12, boxShadow: '0 32px 80px rgba(0,0,0,0.8)' }} onClick={e => e.stopPropagation()} />
+          <img src={url} alt={prompt} style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 12, boxShadow: '0 32px 80px rgba(0,0,0,0.8)' }} onClick={e => e.stopPropagation()} />
           <button onClick={() => setLightbox(false)} style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 40, height: 40, cursor: 'pointer', color: '#fff', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
         </div>
       )}

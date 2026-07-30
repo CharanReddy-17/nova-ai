@@ -10,14 +10,15 @@ export interface Message {
 
 
 export interface Chat {
-  _id:      string;
-  title:    string;
-  messages: Message[];
+  _id:       string;
+  title:     string;
+  messages:  Message[];
   createdAt: string;
   updatedAt: string;
   isPinned:  boolean;
   isPublic:  boolean;
   shareId:   string | null;
+  folder:    string | null;   // null = no folder
 }
 
 export interface StreamCallbacks {
@@ -36,8 +37,11 @@ export const chatService = {
   getChat: (id: string) =>
     api.get<{ chat: Chat }>(`/chats/${id}`).then(r => r.data.chat),
 
-  updateChat: (id: string, data: { title?: string; isPinned?: boolean }) =>
+  updateChat: (id: string, data: { title?: string; isPinned?: boolean; folder?: string | null }) =>
     api.patch<{ chat: Chat }>(`/chats/${id}`, data).then(r => r.data.chat),
+
+  moveToFolder: (id: string, folder: string | null) =>
+    api.patch<{ chat: Chat }>(`/chats/${id}`, { folder }).then(r => r.data.chat),
 
   deleteChat: (id: string) =>
     api.delete(`/chats/${id}`).then(r => r.data),

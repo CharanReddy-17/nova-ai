@@ -1,5 +1,6 @@
 'use client';
-import { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Pin, Trash2, LogOut, Plus, Settings } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -43,22 +44,35 @@ function formatAgo(ts: string) {
   return Math.floor(diff / 86400) + 'd ago';
 }
 
-// ── Rename-in-place chat item ─────────────────────────────────────────────────
-function ChatItem({ chat, active, isPinned, onSelect, onDelete, onPin, onRename }: {
-  chat:     Chat;
-  active:   boolean;
-  isPinned: boolean;
-  onSelect: () => void;
-  onDelete: () => void;
-  onPin:    () => void;
-  onRename: (name: string) => void;
+// ── Rename-in-place chat item (with right-click context menu) ────────────────────
+function ChatItem({ chat, active, isPinned, onSelect, onDelete, onPin, onRename, onMoveToFolder, folders }: {
+  chat:           Chat;
+  active:         boolean;
+  isPinned:       boolean;
+  onSelect:       () => void;
+  onDelete:       () => void;
+  onPin:          () => void;
+  onRename:       (name: string) => void;
+  onMoveToFolder: (folder: string | null) => void;
+  folders:        string[];
 }) {
-  const [hovered, setHovered]   = useState(false);
-  const [editing, setEditing]   = useState(false);
-  const [draft,   setDraft]     = useState(chat.title || 'New Chat');
+  const [hovered,  setHovered]  = useState(false);
+  const [editing,  setEditing]  = useState(false);
+  const [draft,    setDraft]    = useState(chat.title || 'New Chat');
+  const [ctxMenu,  setCtxMenu]  = useState<{ x: number; y: number } | null>(null);
+  const [folderSub, setFolderSub] = useState(false);
+  const [newFolder, setNewFolder] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (editing) inputRef.current?.select(); }, [editing]);
+
+  // Close context menu on outside click
+  useEffect(() => {
+    if (!ctxMenu) return;
+    const close = () => { setCtxMenu(null); setFolderSub(false); };
+    window.addEventListener('mousedown', close);
+    return () => window.removeEventListener('mousedown', close);
+  }, [ctxMenu]);
 
   const commitRename = () => {
     setEditing(false);
@@ -72,6 +86,7 @@ function ChatItem({ chat, active, isPinned, onSelect, onDelete, onPin, onRename 
       initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }}
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
       onClick={() => { if (!editing) onSelect(); }}
+      onContextMenu={e => { e.preventDefault(); setCtxMenu({ x: e.clientX, y: e.clientY }); }}
       role="button" tabIndex={0}
       onKeyDown={e => e.key === 'Enter' && !editing && onSelect()}
       style={{
@@ -79,7 +94,7 @@ function ChatItem({ chat, active, isPinned, onSelect, onDelete, onPin, onRename 
         padding: '7px 10px', borderRadius: 9, cursor: editing ? 'default' : 'pointer',
         background: active  ? 'rgba(124,58,237,0.12)' : hovered ? 'var(--border)' : 'transparent',
         borderLeft: active  ? '2px solid #7c3aed' : '2px solid transparent',
-        transition: 'all 0.15s', userSelect: 'none', marginBottom: 1,
+        transition: 'all 0.15s', userSelect: 'none', marginBottom: 1, position: 'relative',
       }}
     >
       <span style={{ fontSize: 12, flexShrink: 0 }}>{isPinned ? '📌' : '💬'}</span>
@@ -141,7 +156,72 @@ function ChatItem({ chat, active, isPinned, onSelect, onDelete, onPin, onRename 
         )}
       </AnimatePresence>
     </motion.div>
-  );
+
+    {/* ── Right-click context menu ── */}
+    {ctxMenu && (
+      <div
+        onMouseDown={e => e.stopPropagation()}
+        style={{ position: 'fixed', top: ctxMenu.y, left: ctxMenu.x, zIndex: 200, background: 'var(--bg2, #111113)', border: '1px solid var(--border)', borderRadius: 10, padding: '5px 0', minWidth: 170, boxShadow: '0 8px 32px rgba(0,0,0,0.5)', fontSize: 13 }}
+      >
+        {[{ label: isPinned ? '📌 Unpin' : '📌 Pin',   action: () => { onPin(); setCtxMenu(null); } },
+           { label: '✏️ Rename',                        action: () => { setEditing(true); setCtxMenu(null); } },
+           { label: '🗑 Delete',                        action: () => { onDelete(); setCtxMenu(null); }, danger: true },
+        ].map(item => (
+          <button key={item.label} onClick={item.action}
+            style={{ display: 'block', width: '100%', padding: '7px 14px', background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', color: (item as any).danger ? '#ef4444' : 'var(--muted)', fontFamily: 'inherit', fontSize: 13, transition: 'background 0.1s' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+          >{item.label}</button>
+        ))}
+
+        {/* Folder submenu */}
+        <div style={{ borderTop: '1px solid var(--border)', marginTop: 3 }}>
+          <button onClick={() => setFolderSub(v => !v)}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '7px 14px', background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', color: 'var(--muted)', fontFamily: 'inherit', fontSize: 13 }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+          >
+            <span>📁 Move to folder</span>
+            <span style={{ fontSize: 10 }}>{folderSub ? '▲' : '▶'}</span>
+          </button>
+
+          {folderSub && (
+            <div style={{ paddingLeft: 8, paddingBottom: 4 }}>
+              {/* Remove from folder */}
+              {chat.folder && (
+                <button onClick={() => { onMoveToFolder(null); setCtxMenu(null); }}
+                  style={{ display: 'block', width: '100%', padding: '5px 14px', background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', color: '#71717a', fontFamily: 'inherit', fontSize: 12 }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                >✕ Remove from folder</button>
+              )}
+              {/* Existing folders */}
+              {folders.filter(f => f !== chat.folder).map(f => (
+                <button key={f} onClick={() => { onMoveToFolder(f); setCtxMenu(null); }}
+                  style={{ display: 'block', width: '100%', padding: '5px 14px', background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', color: 'var(--muted)', fontFamily: 'inherit', fontSize: 12 }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                >📁 {f}</button>
+              ))}
+              {/* New folder input */}
+              <div style={{ display: 'flex', gap: 4, padding: '4px 8px' }}>
+                <input
+                  value={newFolder}
+                  onChange={e => setNewFolder(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && newFolder.trim()) { onMoveToFolder(newFolder.trim()); setNewFolder(''); setCtxMenu(null); } }}
+                  placeholder="New folder…"
+                  autoFocus
+                  style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 7px', color: 'var(--text)', fontSize: 12, outline: 'none', fontFamily: 'inherit' }}
+                />
+                <button onClick={() => { if (newFolder.trim()) { onMoveToFolder(newFolder.trim()); setNewFolder(''); setCtxMenu(null); } }}
+                  style={{ background: 'rgba(124,58,237,0.2)', border: 'none', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', color: '#a855f7', fontSize: 12, fontFamily: 'inherit' }}>+</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+  </>);
 }
 
 function SectionLabel({ label }: { label: string }) {
@@ -152,6 +232,31 @@ function SectionLabel({ label }: { label: string }) {
   );
 }
 
+// ── Collapsible folder section ────────────────────────────────────────────────
+function FolderSection({ label, chats, renderItem }: { label: string; chats: Chat[]; renderItem: (c: Chat) => React.ReactNode }) {
+  const [open, setOpen] = useState(true);
+  return (
+    <div style={{ marginBottom: 2 }}>
+      <button onClick={() => setOpen(v => !v)}
+        style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '8px 10px 4px', color: 'var(--muted2)', fontFamily: 'inherit' }}
+      >
+        <span style={{ fontSize: 11, transition: 'transform 0.2s', display: 'inline-block', transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+        <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>📁 {label}</span>
+        <span style={{ fontSize: 10, color: 'var(--muted3,#3f3f46)', marginLeft: 'auto' }}>{chats.length}</span>
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden' }}>
+            {chats.map(renderItem)}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+
+
 // ── Main sidebar ──────────────────────────────────────────────────────────────
 export default function Sidebar({ chats, activeChat, onSelectChat, onNewChat, onDeleteChat, onUpdateChats, isLoading, isOpen, onClose }: SidebarProps) {
   const { user, logout }    = useAuth();
@@ -160,6 +265,14 @@ export default function Sidebar({ chats, activeChat, onSelectChat, onNewChat, on
   const [searchOpen, setSearchOpen] = useState(false);
   const { pinned, today, yesterday, older } = groupChats(chats);
   const initials = user?.username ? user.username.slice(0, 2).toUpperCase() : 'U';
+
+  // All unique folder names across chats
+  const allFolders = Array.from(new Set(chats.map(c => c.folder).filter(Boolean))) as string[];
+  // Chats that are in a folder (not shown in date sections)
+  const inFolder = (f: string) => chats.filter(c => c.folder === f);
+  // Chats with no folder (used in date sections)
+  const noFolder = chats.filter(c => !c.folder);
+  const { pinned: pinnedNF, today: todayNF, yesterday: yesterdayNF, older: olderNF } = groupChats(noFolder);
 
   // Pin toggle
   const handlePin = useCallback(async (chat: Chat) => {
@@ -174,6 +287,14 @@ export default function Sidebar({ chats, activeChat, onSelectChat, onNewChat, on
     try {
       await chatService.updateChat(chat._id, { title: newTitle });
       onUpdateChats(chats.map(c => c._id === chat._id ? { ...c, title: newTitle } : c));
+    } catch { /* silent */ }
+  }, [chats, onUpdateChats]);
+
+  // Move to folder
+  const handleMoveToFolder = useCallback(async (chat: Chat, folder: string | null) => {
+    try {
+      await chatService.moveToFolder(chat._id, folder);
+      onUpdateChats(chats.map(c => c._id === chat._id ? { ...c, folder } : c));
     } catch { /* silent */ }
   }, [chats, onUpdateChats]);
 
@@ -203,6 +324,8 @@ export default function Sidebar({ chats, activeChat, onSelectChat, onNewChat, on
         onDelete={() => onDeleteChat(c._id)}
         onPin={() => handlePin(c)}
         onRename={(name) => handleRename(c, name)}
+        onMoveToFolder={(folder) => handleMoveToFolder(c, folder)}
+        folders={allFolders}
       />
     ));
 
@@ -266,28 +389,44 @@ export default function Sidebar({ chats, activeChat, onSelectChat, onNewChat, on
             </div>
           )}
 
-          {pinned.length > 0 && (
+          {/* ── Folder sections ── */}
+          {allFolders.map(folder => (
+            <FolderSection key={folder} label={folder} chats={inFolder(folder)}
+              renderItem={c => (
+                <ChatItem key={c._id} chat={c} active={activeChat?._id === c._id} isPinned={c.isPinned}
+                  onSelect={() => onSelectChat(c)}
+                  onDelete={() => onDeleteChat(c._id)}
+                  onPin={() => handlePin(c)}
+                  onRename={(name) => handleRename(c, name)}
+                  onMoveToFolder={(f) => handleMoveToFolder(c, f)}
+                  folders={allFolders}
+                />
+              )}
+            />
+          ))}
+
+          {pinnedNF.length > 0 && (
             <>
               <SectionLabel label="📌 Pinned" />
-              <AnimatePresence>{renderGroup(pinned, true)}</AnimatePresence>
+              <AnimatePresence>{renderGroup(pinnedNF, true)}</AnimatePresence>
             </>
           )}
-          {today.length > 0 && (
+          {todayNF.length > 0 && (
             <>
               <SectionLabel label="Today" />
-              <AnimatePresence>{renderGroup(today, false)}</AnimatePresence>
+              <AnimatePresence>{renderGroup(todayNF, false)}</AnimatePresence>
             </>
           )}
-          {yesterday.length > 0 && (
+          {yesterdayNF.length > 0 && (
             <>
               <SectionLabel label="Yesterday" />
-              <AnimatePresence>{renderGroup(yesterday, false)}</AnimatePresence>
+              <AnimatePresence>{renderGroup(yesterdayNF, false)}</AnimatePresence>
             </>
           )}
-          {older.length > 0 && (
+          {olderNF.length > 0 && (
             <>
               <SectionLabel label="Earlier" />
-              <AnimatePresence>{renderGroup(older, false)}</AnimatePresence>
+              <AnimatePresence>{renderGroup(olderNF, false)}</AnimatePresence>
             </>
           )}
         </div>

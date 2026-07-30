@@ -5,7 +5,7 @@ const aiService = require('../services/aiService');
 const getChats = async (req, res) => {
   try {
     const chats = await Chat.find({ userId: req.user._id })
-      .select('title createdAt updatedAt isPinned')
+      .select('title createdAt updatedAt isPinned isPublic shareId folder')
       .sort({ updatedAt: -1 });
     res.json({ chats });
   } catch (err) {
@@ -38,10 +38,14 @@ const getChat = async (req, res) => {
 // @route PATCH /api/chats/:id
 const updateChat = async (req, res) => {
   try {
-    const { title, isPinned } = req.body;
+    const { title, isPinned, folder } = req.body;
+    const updates = {};
+    if (title     !== undefined) updates.title    = title;
+    if (isPinned  !== undefined) updates.isPinned = isPinned;
+    if (folder    !== undefined) updates.folder   = folder;   // null = remove from folder
     const chat = await Chat.findOneAndUpdate(
       { _id: req.params.id, userId: req.user._id },
-      { ...(title && { title }), ...(isPinned !== undefined && { isPinned }) },
+      updates,
       { new: true }
     );
     if (!chat) return res.status(404).json({ error: 'Chat not found.' });
