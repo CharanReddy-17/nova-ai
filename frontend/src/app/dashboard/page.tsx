@@ -156,7 +156,7 @@ export default function DashboardPage() {
     if (imagineMatch) {
       const prompt = imagineMatch[1].trim();
       const encoded = encodeURIComponent(prompt);
-      const imageUrl = `https://image.pollinations.ai/prompt/${encoded}?width=1024&height=768&nologo=true&enhance=true&seed=${Date.now()}`;
+      const imageUrl = `https://image.pollinations.ai/prompt/${encoded}?width=1024&height=768&nologo=true&seed=${Math.floor(Math.random() * 2147483647)}`;
 
       const userMsg: Message  = { role: 'user',      content: `/imagine ${prompt}`, timestamp: new Date().toISOString() };
       const imageMsg: Message = { role: 'assistant', content: prompt, imageUrl,    timestamp: new Date().toISOString() };

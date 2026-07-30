@@ -189,7 +189,7 @@ function ImageBubble({ imageUrl: initialUrl, prompt: initialPrompt }: { imageUrl
     setLoaded(false);
     setErrored(false);
     setPrompt(p);
-    setUrl(`https://image.pollinations.ai/prompt/${encoded}?width=1024&height=768&nologo=true&enhance=true&seed=${Date.now()}`);
+    setUrl(`https://image.pollinations.ai/prompt/${encoded}?width=1024&height=768&nologo=true&seed=${Math.floor(Math.random() * 2147483647)}`);
     setEditPrompt(false);
   }, [prompt]);
 
