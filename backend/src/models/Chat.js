@@ -4,6 +4,8 @@ const messageSchema = new mongoose.Schema({
   role:      { type: String, enum: ['user', 'assistant', 'system'], required: true },
   content:   { type: String, required: true },
   timestamp: { type: Date, default: Date.now },
+  // Mentioned users (optional) — stores referenced User._id values
+  mentions:  [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 });
 
 
