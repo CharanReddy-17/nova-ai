@@ -175,58 +175,106 @@ function EditBox({ initial, onSave, onCancel }: { initial: string; onSave: (v: s
 
 // ── Generated image bubble ────────────────────────────────────────────────────
 function ImageBubble({ imageUrl: initialUrl, prompt: initialPrompt }: { imageUrl: string; prompt: string }) {
-  const [url,         setUrl]       = useState(initialUrl);
-  const [prompt,      setPrompt]    = useState(initialPrompt);
-  const [loaded,      setLoaded]    = useState(false);
-  const [errored,     setErrored]   = useState(false);
-  const [lightbox,    setLightbox]  = useState(false);
+  const [blobUrl,     setBlobUrl]    = useState<string | null>(null);
+  const [prompt,      setPrompt]     = useState(initialPrompt);
+  const [rawUrl,      setRawUrl]     = useState(initialUrl);
+  const [status,      setStatus]     = useState<'loading' | 'done' | 'error'>('loading');
+  const [lightbox,    setLightbox]   = useState(false);
   const [editPrompt,  setEditPrompt] = useState(false);
-  const [editVal,     setEditVal]   = useState(initialPrompt);
+  const [editVal,     setEditVal]    = useState(initialPrompt);
+  const [elapsed,     setElapsed]    = useState(0);
+  const controllerRef = useRef<AbortController | null>(null);
+
+  // Fetch image as blob so we control the timeout (not the browser's img element)
+  const fetchImage = useCallback(async (url: string) => {
+    // Cancel any in-flight request
+    controllerRef.current?.abort();
+    const ctrl = new AbortController();
+    controllerRef.current = ctrl;
+
+    setStatus('loading');
+    setBlobUrl(null);
+    setElapsed(0);
+
+    // Elapsed timer
+    const tick = setInterval(() => setElapsed(s => s + 1), 1000);
+
+    try {
+      const res = await fetch(url, { signal: ctrl.signal });
+      clearInterval(tick);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.startsWith('image/')) throw new Error('Not an image');
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      setBlobUrl(objectUrl);
+      setStatus('done');
+    } catch (e: any) {
+      clearInterval(tick);
+      if (e?.name === 'AbortError') return; // intentional cancel
+      setStatus('error');
+    }
+  }, []);
+
+  // Fetch on mount + whenever rawUrl changes
+  useEffect(() => {
+    fetchImage(rawUrl);
+    return () => { controllerRef.current?.abort(); };
+  }, [rawUrl, fetchImage]);
+
+  // Revoke blob URL on cleanup
+  useEffect(() => {
+    return () => { if (blobUrl) URL.revokeObjectURL(blobUrl); };
+  }, [blobUrl]);
 
   const reroll = useCallback((newPrompt?: string) => {
     const p = newPrompt ?? prompt;
     const encoded = encodeURIComponent(p);
-    setLoaded(false);
-    setErrored(false);
     setPrompt(p);
-    setUrl(`https://image.pollinations.ai/prompt/${encoded}?width=1024&height=768&nologo=true&seed=${Math.floor(Math.random() * 2147483647)}`);
     setEditPrompt(false);
+    setRawUrl(`https://image.pollinations.ai/prompt/${encoded}?width=1024&height=768&nologo=true&seed=${Math.floor(Math.random() * 2147483647)}`);
   }, [prompt]);
 
   return (
     <>
       <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', maxWidth: 420, border: '1px solid rgba(255,255,255,0.08)', background: '#111' }}>
-        {/* Loading shimmer */}
-        {!loaded && !errored && (
-          <div style={{ width: '100%', aspectRatio: '4/3', background: 'linear-gradient(90deg, #1a1a2e 25%, #26263e 50%, #1a1a2e 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ color: '#52525b', fontSize: 13 }}>🎨 Generating…</span>
+
+        {/* Loading state with elapsed timer */}
+        {status === 'loading' && (
+          <div style={{ width: '100%', aspectRatio: '4/3', background: 'linear-gradient(90deg, #1a1a2e 25%, #26263e 50%, #1a1a2e 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+            <span style={{ fontSize: 28 }}>🎨</span>
+            <span style={{ color: '#a1a1aa', fontSize: 13, fontWeight: 500 }}>Generating image…</span>
+            <span style={{ color: '#52525b', fontSize: 12 }}>{elapsed}s &bull; may take up to 30s</span>
           </div>
         )}
 
-        {!errored && (
-          <img src={url} alt={prompt}
-            onLoad={() => setLoaded(true)}
-            onError={() => setErrored(true)}
-            style={{ display: loaded ? 'block' : 'none', width: '100%', cursor: 'zoom-in' }}
+        {/* Success */}
+        {status === 'done' && blobUrl && (
+          <img src={blobUrl} alt={prompt}
+            style={{ display: 'block', width: '100%', cursor: 'zoom-in' }}
             onClick={() => setLightbox(true)}
           />
         )}
 
-        {errored && (
-          <div style={{ padding: 24, textAlign: 'center', color: '#71717a', fontSize: 13 }}>
-            ⚠️ Generation failed.
-            <button onClick={() => reroll()} style={{ display: 'block', margin: '8px auto 0', background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 8, padding: '4px 12px', color: '#a855f7', cursor: 'pointer', fontSize: 12 }}>Retry</button>
+        {/* Error */}
+        {status === 'error' && (
+          <div style={{ padding: 28, textAlign: 'center', color: '#71717a', fontSize: 13 }}>
+            <div style={{ fontSize: 28, marginBottom: 8 }}>⚠️</div>
+            Generation failed or timed out.
+            <button onClick={() => fetchImage(rawUrl)}
+              style={{ display: 'block', margin: '10px auto 0', background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 8, padding: '5px 14px', color: '#a855f7', cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}
+            >Retry</button>
           </div>
         )}
 
-        {/* Overlay action buttons */}
-        {loaded && (
+        {/* Overlay action buttons — zoom + download */}
+        {status === 'done' && blobUrl && (
           <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 6 }}>
             <button onClick={() => setLightbox(true)} title="View full size"
               style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '5px 8px', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center' }}>
               <ZoomIn size={13} />
             </button>
-            <a href={url} download={`nova-${Date.now()}.jpg`} target="_blank" rel="noopener noreferrer" title="Download"
+            <a href={blobUrl} download={`nova-${Date.now()}.jpg`} title="Download"
               style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '5px 8px', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
               <Download size={13} />
             </a>
@@ -237,18 +285,16 @@ function ImageBubble({ imageUrl: initialUrl, prompt: initialPrompt }: { imageUrl
       {/* Caption + variation controls */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5, maxWidth: 420, flexWrap: 'wrap' }}>
         <p style={{ fontSize: 11, color: '#52525b', fontStyle: 'italic', margin: 0, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          🎨 "{prompt}"
+          🎨 &quot;{prompt}&quot;
         </p>
         <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
-          {/* Re-roll same prompt */}
-          <button onClick={() => reroll()} title="Generate a new variation"
-            style={{ display: 'flex', alignItems: 'center', gap: 3, background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.25)', borderRadius: 7, padding: '3px 8px', cursor: 'pointer', color: '#a855f7', fontSize: 11, fontFamily: 'inherit', transition: 'all 0.15s' }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(124,58,237,0.2)')}
+          <button onClick={() => reroll()} title="Generate a new variation" disabled={status === 'loading'}
+            style={{ display: 'flex', alignItems: 'center', gap: 3, background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.25)', borderRadius: 7, padding: '3px 8px', cursor: status === 'loading' ? 'not-allowed' : 'pointer', color: '#a855f7', fontSize: 11, fontFamily: 'inherit', opacity: status === 'loading' ? 0.5 : 1, transition: 'all 0.15s' }}
+            onMouseEnter={e => { if (status !== 'loading') e.currentTarget.style.background = 'rgba(124,58,237,0.2)'; }}
             onMouseLeave={e => (e.currentTarget.style.background = 'rgba(124,58,237,0.1)')}
           >
             🔄 Variation
           </button>
-          {/* Edit prompt */}
           <button onClick={() => { setEditVal(prompt); setEditPrompt(v => !v); }} title="Edit prompt"
             style={{ display: 'flex', alignItems: 'center', gap: 3, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, padding: '3px 8px', cursor: 'pointer', color: '#71717a', fontSize: 11, fontFamily: 'inherit', transition: 'all 0.15s' }}
             onMouseEnter={e => (e.currentTarget.style.color = '#a1a1aa')}
@@ -262,12 +308,9 @@ function ImageBubble({ imageUrl: initialUrl, prompt: initialPrompt }: { imageUrl
       {/* Edit prompt input */}
       {editPrompt && (
         <div style={{ marginTop: 6, maxWidth: 420, display: 'flex', gap: 6 }}>
-          <input
-            value={editVal}
-            onChange={e => setEditVal(e.target.value)}
+          <input value={editVal} onChange={e => setEditVal(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && editVal.trim()) reroll(editVal.trim()); if (e.key === 'Escape') setEditPrompt(false); }}
-            autoFocus
-            placeholder="New prompt…"
+            autoFocus placeholder="New prompt…"
             style={{ flex: 1, background: '#18181b', border: '1px solid rgba(124,58,237,0.4)', borderRadius: 8, padding: '6px 10px', color: '#fafafa', fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
           />
           <button onClick={() => { if (editVal.trim()) reroll(editVal.trim()); }}
@@ -278,9 +321,9 @@ function ImageBubble({ imageUrl: initialUrl, prompt: initialPrompt }: { imageUrl
       )}
 
       {/* Lightbox */}
-      {lightbox && (
+      {lightbox && blobUrl && (
         <div onClick={() => setLightbox(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out', padding: 24 }}>
-          <img src={url} alt={prompt} style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 12, boxShadow: '0 32px 80px rgba(0,0,0,0.8)' }} onClick={e => e.stopPropagation()} />
+          <img src={blobUrl} alt={prompt} style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 12, boxShadow: '0 32px 80px rgba(0,0,0,0.8)' }} onClick={e => e.stopPropagation()} />
           <button onClick={() => setLightbox(false)} style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 40, height: 40, cursor: 'pointer', color: '#fff', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
         </div>
       )}
