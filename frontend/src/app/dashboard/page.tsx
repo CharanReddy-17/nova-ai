@@ -300,11 +300,13 @@ export default function DashboardPage() {
   // ── Keyboard shortcuts ──────────────────────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'n') { e.preventDefault(); createNewChat(); }
+      // capture:true is required — Ctrl+N is handled by the browser before bubble phase
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') { e.preventDefault(); e.stopPropagation(); createNewChat(); }
       if ((e.ctrlKey || e.metaKey) && e.key === '/') { e.preventDefault(); setShortcutsOpen(s => !s); }
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    // Use capture phase so we beat Chrome's native Ctrl+N handler
+    document.addEventListener('keydown', handler, { capture: true });
+    return () => document.removeEventListener('keydown', handler, { capture: true });
   }, [createNewChat]);
 
   // ── Loading state ───────────────────────────────────────────────────────────

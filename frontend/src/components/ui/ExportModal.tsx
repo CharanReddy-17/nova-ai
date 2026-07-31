@@ -179,11 +179,16 @@ ${rows}
             exit={{ opacity: 0, y: 24, scale: 0.96 }}
             transition={{ type: 'spring', stiffness: 420, damping: 32 }}
             style={{
-              position: 'fixed', top: '50%', left: '50%',
+              position: 'fixed',
+              top: '50%', left: '50%',
               transform: 'translate(-50%, -50%)',
-              width: '100%', maxWidth: 460, zIndex: 201,
-              background: '#111113', border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 20, overflow: 'hidden',
+              width: 'calc(100% - 32px)', maxWidth: 460,
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              zIndex: 201,
+              background: '#111113',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 20,
               boxShadow: '0 40px 80px rgba(0,0,0,0.8)',
             }}
           >
