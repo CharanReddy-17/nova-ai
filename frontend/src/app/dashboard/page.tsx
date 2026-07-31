@@ -12,6 +12,7 @@ import TypingIndicator from '@/components/chat/TypingIndicator';
 import ModelSelector, { MODELS } from '@/components/ui/ModelSelector';
 import ExportModal from '@/components/ui/ExportModal';
 import PersonaSelector, { PERSONAS } from '@/components/ui/PersonaSelector';
+import PersonaBanner from '@/components/ui/PersonaBanner';
 import StatsPanel from '@/components/ui/StatsPanel';
 import UpgradeModal from '@/components/ui/UpgradeModal';
 import ShortcutsModal from '@/components/ui/ShortcutsModal';
@@ -82,10 +83,12 @@ export default function DashboardPage() {
   const [selectedModel, setSelectedModel] = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('nova_model') || MODELS[0].id : MODELS[0].id
   );
+  const [bannerTrigger, setBannerTrigger] = useState(0);
 
   const handlePersonaSelect = (id: string) => {
     setSelectedPersona(id);
     localStorage.setItem('nova_persona', id);
+    setBannerTrigger(t => t + 1); // show the banner
   };
   const handleModelSelect = (id: string) => {
     setSelectedModel(id);
@@ -323,6 +326,7 @@ export default function DashboardPage() {
   return (
     <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden', background: '#09090b' }}>
 
+      <PersonaBanner persona={activePersona} trigger={bannerTrigger} />
       <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} messagesUsed={dailyUsed} />
       <StatsPanel   open={statsOpen}   onClose={() => setStatsOpen(false)}   username={user?.username} />
       <ExportModal  open={exportOpen}  onClose={() => setExportOpen(false)}  messages={messages} chatTitle={activeChat?.title} />
