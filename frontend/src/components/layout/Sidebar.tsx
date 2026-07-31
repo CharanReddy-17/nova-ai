@@ -81,7 +81,7 @@ function ChatItem({ chat, active, isPinned, onSelect, onDelete, onPin, onRename,
     if (name !== chat.title) onRename(name);
   };
 
-  return (
+  return (<>
     <motion.div
       initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }}
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
