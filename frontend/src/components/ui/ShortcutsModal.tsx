@@ -7,7 +7,7 @@ interface Props {
 }
 
 const shortcuts = [
-  { keys: ['Ctrl', 'N'],   label: 'New chat' },
+  { keys: ['Alt', 'N'],    label: 'New chat' },
   { keys: ['Ctrl', 'K'],   label: 'Command palette / search chats' },
   { keys: ['Ctrl', '/'],   label: 'Show keyboard shortcuts' },
   { keys: ['Enter'],       label: 'Send message' },

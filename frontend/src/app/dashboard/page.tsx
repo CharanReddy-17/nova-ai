@@ -297,14 +297,14 @@ export default function DashboardPage() {
     return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
-  // ── Keyboard shortcuts ──────────────────────────────────────────────────────
+  // ── Keyboard shortcuts ──────────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // capture:true is required — Ctrl+N is handled by the browser before bubble phase
-      if ((e.ctrlKey || e.metaKey) && e.key === 'n') { e.preventDefault(); e.stopPropagation(); createNewChat(); }
+      // Alt+N = new chat (Ctrl+N is owned by Chrome and cannot be overridden)
+      if (e.altKey && e.key === 'n') { e.preventDefault(); createNewChat(); }
       if ((e.ctrlKey || e.metaKey) && e.key === '/') { e.preventDefault(); setShortcutsOpen(s => !s); }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); setShortcutsOpen(s => !s); }
     };
-    // Use capture phase so we beat Chrome's native Ctrl+N handler
     document.addEventListener('keydown', handler, { capture: true });
     return () => document.removeEventListener('keydown', handler, { capture: true });
   }, [createNewChat]);
@@ -451,7 +451,7 @@ export default function DashboardPage() {
                   {selectedPersona === 'default' ? 'How can I help?' : `${activePersona?.name} is ready`}
                 </h2>
                 <p style={{ color: '#52525b', fontSize: 14, marginBottom: 32 }}>
-                  {activePersona?.tagline || 'Ask me anything'} · <kbd style={{ background: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 4, padding: '1px 5px', fontSize: 11, color: '#71717a' }}>Ctrl+N</kbd> new chat
+                  {activePersona?.tagline || 'Ask me anything'} · <kbd style={{ background: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 4, padding: '1px 5px', fontSize: 11, color: '#71717a' }}>Alt+N</kbd> new chat
                 </p>
                 <div className="suggestion-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, maxWidth: 520, margin: '0 auto', textAlign: 'left' }}>
                   {activeSuggestions.map(s => (
