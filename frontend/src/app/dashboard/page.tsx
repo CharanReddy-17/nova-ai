@@ -150,9 +150,10 @@ export default function DashboardPage() {
     } catch {}
   }, [activeChat]);
 
-  // ── Core send logic ─────────────────────────────────────────────────────────
-  const sendMessage = useCallback(async (content: string) => {
-    if (!content.trim() || isSending) return;
+  // ── Core send logic ──────────────────────────────────────────
+  const sendMessage = useCallback(async (content: string, attachedImageUrl?: string) => {
+    if (!content.trim() && !attachedImageUrl) return;
+    if (isSending) return;
 
     // ── /imagine command ───────────────────────────────────────────────────────
     const imagineMatch = content.match(/^\/imagine\s+(.+)/i);
@@ -181,7 +182,13 @@ export default function DashboardPage() {
       } catch { return; }
     }
 
-    const optimistic: Message = { role: 'user', content, timestamp: new Date().toISOString() };
+    // User bubble — show attached image if present
+    const optimistic: Message = {
+      role: 'user',
+      content,
+      imageUrl: attachedImageUrl,
+      timestamp: new Date().toISOString(),
+    };
     setMessages(prev => [...prev, optimistic]);
     setIsSending(true);
     setIsTyping(true);
@@ -191,7 +198,11 @@ export default function DashboardPage() {
     const chatId = chat._id;
 
     try {
-      await chatService.streamMessage(chatId, content, {
+      // If there's an attached image, prepend context for AI
+      const aiContent = attachedImageUrl
+        ? `${content ? content + '\n\n' : ''}[User shared an image: ${attachedImageUrl}]`
+        : content;
+      await chatService.streamMessage(chatId, aiContent, {
         onChunk: (chunk) => {
           streamedContent += chunk;
           setIsTyping(false);
@@ -520,7 +531,7 @@ export default function DashboardPage() {
         {/* Input */}
         <div className="input-bar" style={{ padding: '8px 20px 16px', flexShrink: 0 }}>
           <div style={{ maxWidth: 760, margin: '0 auto' }}>
-            <MessageInput onSend={sendMessage} isSending={isSending} placeholder={`Message ${activePersona?.name || 'NOVA AI'}… or /imagine a prompt`} />
+            <MessageInput onSend={(content, imgUrl) => sendMessage(content, imgUrl)} isSending={isSending} placeholder={`Message ${activePersona?.name || 'NOVA AI'}… or /imagine a prompt`} />
             <p style={{ textAlign: 'center', marginTop: 8, fontSize: 11, color: '#3f3f46' }}>
               NOVA AI can make mistakes. Verify important info. Try <code style={{ color: '#f9a8d4', background: 'rgba(236,72,153,0.1)', padding: '0 4px', borderRadius: 4, fontSize: 11 }}>/imagine a sunset</code> to generate images.
             </p>

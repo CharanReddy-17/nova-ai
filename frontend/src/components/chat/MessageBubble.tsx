@@ -334,7 +334,8 @@ function ImageBubble({ imageUrl: initialUrl, prompt: initialPrompt }: { imageUrl
 // ── Main bubble ───────────────────────────────────────────────────────────────
 export default function MessageBubble({ message, isLast, isLastAI, onRegenerate, onEdit, onReact, reaction }: Props) {
   const isUser    = message.role === 'user';
-  const isImage   = !!message.imageUrl;
+  const isImage   = !!message.imageUrl && !isUser;  // AI-generated images only
+  const hasUserAttachment = isUser && !!message.imageUrl; // user-uploaded images
   const [editing,   setEditing]   = useState(false);
   const [hovered,   setHovered]   = useState(false);
   const [speaking,  setSpeaking]  = useState(false);
@@ -413,9 +414,19 @@ export default function MessageBubble({ message, isLast, isLastAI, onRegenerate,
             border: isUser ? 'none' : '1px solid var(--border, rgba(255,255,255,0.07))',
             color: isUser ? '#fff' : 'var(--text2, #e4e4e7)',
             fontSize: 14, lineHeight: 1.65, wordBreak: 'break-word',
+            overflow: 'hidden',
           }}>
+            {/* User-attached image preview inside bubble */}
+            {hasUserAttachment && (
+              <div style={{ marginBottom: message.content && message.content !== '📎 Image attached' ? 8 : 0, borderRadius: 10, overflow: 'hidden', maxWidth: 260 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={message.imageUrl} alt="Attached" style={{ display: 'block', width: '100%', borderRadius: 10 }} />
+              </div>
+            )}
             {isUser ? (
-              <span style={{ whiteSpace: 'pre-wrap' }}>{message.content}</span>
+              <span style={{ whiteSpace: 'pre-wrap' }}>
+                {message.content === '📎 Image attached' && hasUserAttachment ? '' : message.content}
+              </span>
             ) : (
               /* AI markdown with streaming cursor */
               <div className={`nova-markdown${message.isStreaming ? ' streaming-cursor' : ''}`} style={{ fontSize: 14 }}>
