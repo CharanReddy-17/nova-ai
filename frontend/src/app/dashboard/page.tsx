@@ -300,10 +300,10 @@ export default function DashboardPage() {
   // ── Keyboard shortcuts ──────────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Alt+N = new chat (Ctrl+N is owned by Chrome and cannot be overridden)
+      // Alt+N = new chat (Ctrl+N is owned by Chrome, can't be overridden)
       if (e.altKey && e.key === 'n') { e.preventDefault(); createNewChat(); }
+      // Ctrl+/ = shortcuts panel only
       if ((e.ctrlKey || e.metaKey) && e.key === '/') { e.preventDefault(); setShortcutsOpen(s => !s); }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); setShortcutsOpen(s => !s); }
     };
     document.addEventListener('keydown', handler, { capture: true });
     return () => document.removeEventListener('keydown', handler, { capture: true });
