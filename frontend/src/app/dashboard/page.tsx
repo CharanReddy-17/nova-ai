@@ -302,8 +302,16 @@ export default function DashboardPage() {
     const handler = (e: KeyboardEvent) => {
       // Alt+N = new chat (Ctrl+N is owned by Chrome, can't be overridden)
       if (e.altKey && e.key === 'n') { e.preventDefault(); createNewChat(); }
-      // Ctrl+/ = shortcuts panel only
+      // Ctrl+/ = shortcuts panel
       if ((e.ctrlKey || e.metaKey) && e.key === '/') { e.preventDefault(); setShortcutsOpen(s => !s); }
+      // Escape = close whatever modal is open
+      if (e.key === 'Escape') {
+        setShortcutsOpen(false);
+        setExportOpen(false);
+        setStatsOpen(false);
+        setShareOpen(false);
+        setUpgradeOpen(false);
+      }
     };
     document.addEventListener('keydown', handler, { capture: true });
     return () => document.removeEventListener('keydown', handler, { capture: true });
