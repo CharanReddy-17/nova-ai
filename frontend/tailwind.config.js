@@ -9,20 +9,20 @@ module.exports = {
     extend: {
       colors: {
         space: {
-          950: '#020209',
-          900: '#06060f',
-          800: '#0a0a1a',
-          700: '#0f0f28',
+          950: '#2A1A0E',
+          900: '#1e1208',
+          800: '#3d2512',
+          700: '#4f3018',
         },
         cosmic: {
-          blue:   '#4fc3f7',
-          purple: '#7b1fa2',
-          violet: '#9c27b0',
-          pink:   '#e91e63',
-          cyan:   '#00d4ff',
-          gold:   '#ffd700',
-          green:  '#00ff88',
-          amber:  '#ffaa00',
+          cream:  '#FEF3E2',
+          amber:  '#F4AE52',
+          orange: '#D4621A',
+          brown:  '#2A1A0E',
+          gold:   '#F4AE52',
+          warm:   '#FEF3E2',
+          rust:   '#D4621A',
+          dark:   '#2A1A0E',
         },
       },
       fontFamily: {
@@ -31,15 +31,15 @@ module.exports = {
         display: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
       },
       backgroundImage: {
-        'cosmic-gradient': 'linear-gradient(135deg, #020209 0%, #050514 50%, #0a0a23 100%)',
-        'neon-blue': 'linear-gradient(90deg, #4fc3f7, #00e5ff)',
-        'neon-purple': 'linear-gradient(90deg, #7b1fa2, #e91e63)',
-        'card-glass': 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
+        'cosmic-gradient': 'linear-gradient(135deg, #2A1A0E 0%, #3d2512 50%, #4f3018 100%)',
+        'neon-amber': 'linear-gradient(90deg, #F4AE52, #D4621A)',
+        'neon-orange': 'linear-gradient(90deg, #D4621A, #F4AE52)',
+        'card-glass': 'linear-gradient(135deg, rgba(254,243,226,0.07) 0%, rgba(254,243,226,0.03) 100%)',
       },
       boxShadow: {
-        'neon-blue': '0 0 20px rgba(79,195,247,0.4), 0 0 40px rgba(79,195,247,0.2)',
-        'neon-purple': '0 0 20px rgba(123,31,162,0.4)',
-        'glass': '0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1)',
+        'neon-amber':  '0 0 20px rgba(244,174,82,0.4), 0 0 40px rgba(244,174,82,0.2)',
+        'neon-orange': '0 0 20px rgba(212,98,26,0.4)',
+        'glass': '0 8px 32px rgba(42,26,14,0.6), inset 0 1px 0 rgba(254,243,226,0.08)',
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
@@ -58,8 +58,8 @@ module.exports = {
           '100%': { backgroundPosition: '200% 0' },
         },
         glow: {
-          '0%': { boxShadow: '0 0 5px rgba(79,195,247,0.3)' },
-          '100%': { boxShadow: '0 0 20px rgba(79,195,247,0.8), 0 0 40px rgba(79,195,247,0.4)' },
+          '0%': { boxShadow: '0 0 5px rgba(244,174,82,0.3)' },
+          '100%': { boxShadow: '0 0 20px rgba(244,174,82,0.8), 0 0 40px rgba(244,174,82,0.4)' },
         },
       },
       backdropBlur: {
