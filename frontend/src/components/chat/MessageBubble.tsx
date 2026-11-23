@@ -5,7 +5,11 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Copy, Check, RefreshCw, User, Pencil, X, ThumbsUp, ThumbsDown, Download, ZoomIn, Volume2, VolumeX } from 'lucide-react';
+import {
+  Copy, Check, RefreshCw, User, Pencil, X, ThumbsUp, ThumbsDown,
+  Download, ZoomIn, Volume2, VolumeX, Sparkles, Image as ImageIcon,
+  AlertCircle, Play, Loader2
+} from 'lucide-react';
 import { Message } from '@/services/chatService';
 
 interface Props {
@@ -19,7 +23,7 @@ interface Props {
 }
 
 // ── Copy button ───────────────────────────────────────────────────────────────
-function CopyBtn({ text, size = 14 }: { text: string; size?: number }) {
+function CopyBtn({ text, size = 13 }: { text: string; size?: number }) {
   const [copied, setCopied] = useState(false);
   const copy = useCallback(async () => {
     await navigator.clipboard.writeText(text);
@@ -28,9 +32,9 @@ function CopyBtn({ text, size = 14 }: { text: string; size?: number }) {
   }, [text]);
   return (
     <button onClick={copy} title="Copy" style={{
-      background: 'none', border: 'none', cursor: 'pointer', padding: 4,
-      color: copied ? '#10b981' : '#71717a', transition: 'color 0.15s',
-      display: 'flex', alignItems: 'center',
+      background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
+      color: copied ? '#10b981' : 'var(--muted)', transition: 'color 0.15s',
+      display: 'flex', alignItems: 'center', borderRadius: 4,
     }}>
       {copied ? <Check size={size} /> : <Copy size={size} />}
     </button>
@@ -61,20 +65,18 @@ function CodeBlock({ language, children }: { language: string; children: string 
     const origLog   = console.log;
     const origWarn  = console.warn;
     const origError = console.error;
-    // Capture console output
     console.log   = (...a) => { logs.push(a.map(String).join(' ')); };
-    console.warn  = (...a) => { logs.push('⚠️ ' + a.map(String).join(' ')); };
-    console.error = (...a) => { logs.push('❌ ' + a.map(String).join(' ')); };
+    console.warn  = (...a) => { logs.push('[warn] ' + a.map(String).join(' ')); };
+    console.error = (...a) => { logs.push('[error] ' + a.map(String).join(' ')); };
     let result: string;
     try {
-      // Wrap in IIFE so return works, 3-second timeout via sync execution
       const fn = new Function(children);
       const val = fn();
-      if (val !== undefined) logs.push('→ ' + JSON.stringify(val, null, 2));
+      if (val !== undefined) logs.push('-> ' + JSON.stringify(val, null, 2));
       result = logs.length ? logs.join('\n') : '(no output)';
       setRunError(false);
     } catch (e: any) {
-      result = '❌ ' + (e?.message || String(e));
+      result = 'Error: ' + (e?.message || String(e));
       setRunError(true);
     } finally {
       console.log   = origLog;
@@ -86,42 +88,40 @@ function CodeBlock({ language, children }: { language: string; children: string 
   }, [children]);
 
   return (
-    <div style={{ position: 'relative', margin: '10px 0', borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px', background: '#1a1a2e', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <span style={{ fontSize: 11, color: '#71717a', fontFamily: 'monospace', letterSpacing: '0.04em' }}>{language || 'code'}</span>
+    <div style={{ position: 'relative', margin: '12px 0', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)', background: '#121214' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 14px', background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
+        <span style={{ fontSize: 12, color: 'var(--muted)', fontFamily: 'monospace', letterSpacing: '0.04em' }}>{language || 'code'}</span>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          {/* Run button — JS/TS only */}
           {canRun && (
             <button onClick={run} disabled={running}
               style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 6, cursor: 'pointer', color: '#10b981', fontSize: 11, fontFamily: 'inherit', padding: '2px 8px', transition: 'all 0.15s', fontWeight: 600 }}
               onMouseEnter={e => (e.currentTarget.style.background = 'rgba(16,185,129,0.2)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'rgba(16,185,129,0.1)')}
             >
-              ▶ {running ? 'Running…' : 'Run'}
+              <Play size={10} fill="currentColor" /> {running ? 'Running…' : 'Run'}
             </button>
           )}
-          <button onClick={copy} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: copied ? '#10b981' : '#71717a', fontSize: 11, fontFamily: 'inherit', padding: '2px 6px', transition: 'color 0.15s' }}>
-            {copied ? <Check size={11} /> : <Copy size={11} />} {copied ? 'Copied!' : 'Copy'}
+          <button onClick={copy} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: copied ? '#10b981' : 'var(--muted)', fontSize: 11, fontFamily: 'inherit', padding: '2px 6px', transition: 'color 0.15s' }}>
+            {copied ? <Check size={12} /> : <Copy size={12} />} {copied ? 'Copied' : 'Copy'}
           </button>
         </div>
       </div>
       <SyntaxHighlighter
         language={language || 'text'} style={oneDark}
-        customStyle={{ margin: 0, padding: '14px 16px', fontSize: 13, background: '#0d0d14', borderRadius: 0, fontFamily: 'JetBrains Mono, monospace' }}
+        customStyle={{ margin: 0, padding: '14px 16px', fontSize: 13, background: '#101012', borderRadius: 0, fontFamily: 'JetBrains Mono, monospace' }}
         showLineNumbers={children.split('\n').length > 5}
-        lineNumberStyle={{ color: '#3f3f46', fontSize: 11 }}
+        lineNumberStyle={{ color: '#4b4b52', fontSize: 11 }}
       >
         {children}
       </SyntaxHighlighter>
 
-      {/* Output panel */}
       {output !== null && (
         <div style={{ background: runError ? 'rgba(239,68,68,0.06)' : 'rgba(16,185,129,0.05)', borderTop: `1px solid ${runError ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.15)'}`, padding: '10px 14px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
             <span style={{ fontSize: 11, color: runError ? '#ef4444' : '#10b981', fontWeight: 600, fontFamily: 'monospace' }}>
-              {runError ? '❌ Error' : '▶ Output'}
+              {runError ? 'Execution Error' : 'Output'}
             </span>
-            <button onClick={() => setOutput(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#52525b', fontSize: 11, fontFamily: 'inherit' }}>clear</button>
+            <button onClick={() => setOutput(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 11, fontFamily: 'inherit' }}>clear</button>
           </div>
           <pre style={{ margin: 0, fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: runError ? '#fca5a5' : '#d4d4d8', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
             {output}
@@ -131,7 +131,6 @@ function CodeBlock({ language, children }: { language: string; children: string 
     </div>
   );
 }
-
 
 // ── Inline edit ───────────────────────────────────────────────────────────────
 function EditBox({ initial, onSave, onCancel }: { initial: string; onSave: (v: string) => void; onCancel: () => void }) {
@@ -157,18 +156,18 @@ function EditBox({ initial, onSave, onCancel }: { initial: string; onSave: (v: s
           if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (value.trim()) onSave(value.trim()); }
           if (e.key === 'Escape') onCancel();
         }}
-        style={{ width: '100%', background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.4)', borderRadius: 12, padding: '10px 14px', color: '#fafafa', fontSize: 14, lineHeight: 1.6, resize: 'none', outline: 'none', fontFamily: 'inherit', minHeight: 44, boxSizing: 'border-box', overflow: 'hidden' }}
+        style={{ width: '100%', background: 'var(--surface)', border: '1px solid var(--accent)', borderRadius: 12, padding: '12px 14px', color: 'var(--text)', fontSize: 14, lineHeight: 1.6, resize: 'none', outline: 'none', fontFamily: 'inherit', minHeight: 48, boxSizing: 'border-box' }}
       />
-      <div style={{ display: 'flex', gap: 6, marginTop: 6, justifyContent: 'flex-end' }}>
-        <button onClick={onCancel} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#71717a', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-          <X size={12} /> Cancel
+      <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'flex-end' }}>
+        <button onClick={onCancel} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--muted)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+          <X size={13} /> Cancel
         </button>
         <button onClick={() => { if (value.trim()) onSave(value.trim()); }} disabled={!value.trim()}
-          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 14px', background: 'linear-gradient(135deg,#7c3aed,#a855f7)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
-          Send ↵
+          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 14px', background: 'var(--accent)', border: 'none', borderRadius: 8, color: '#0F0F10', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+          Send
         </button>
       </div>
-      <p style={{ fontSize: 11, color: '#52525b', marginTop: 4, textAlign: 'right' }}>Enter to send · Esc to cancel</p>
+      <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4, textAlign: 'right' }}>Enter to send · Esc to cancel</p>
     </div>
   );
 }
@@ -185,9 +184,7 @@ function ImageBubble({ imageUrl: initialUrl, prompt: initialPrompt }: { imageUrl
   const [elapsed,     setElapsed]    = useState(0);
   const controllerRef = useRef<AbortController | null>(null);
 
-  // Fetch image as blob so we control the timeout (not the browser's img element)
   const fetchImage = useCallback(async (url: string) => {
-    // Cancel any in-flight request
     controllerRef.current?.abort();
     const ctrl = new AbortController();
     controllerRef.current = ctrl;
@@ -196,7 +193,6 @@ function ImageBubble({ imageUrl: initialUrl, prompt: initialPrompt }: { imageUrl
     setBlobUrl(null);
     setElapsed(0);
 
-    // Elapsed timer
     const tick = setInterval(() => setElapsed(s => s + 1), 1000);
 
     try {
@@ -211,18 +207,16 @@ function ImageBubble({ imageUrl: initialUrl, prompt: initialPrompt }: { imageUrl
       setStatus('done');
     } catch (e: any) {
       clearInterval(tick);
-      if (e?.name === 'AbortError') return; // intentional cancel
+      if (e?.name === 'AbortError') return;
       setStatus('error');
     }
   }, []);
 
-  // Fetch on mount + whenever rawUrl changes
   useEffect(() => {
     fetchImage(rawUrl);
     return () => { controllerRef.current?.abort(); };
   }, [rawUrl, fetchImage]);
 
-  // Revoke blob URL on cleanup
   useEffect(() => {
     return () => { if (blobUrl) URL.revokeObjectURL(blobUrl); };
   }, [blobUrl]);
@@ -237,18 +231,15 @@ function ImageBubble({ imageUrl: initialUrl, prompt: initialPrompt }: { imageUrl
 
   return (
     <>
-      <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', maxWidth: 420, border: '1px solid rgba(255,255,255,0.08)', background: '#111' }}>
-
-        {/* Loading state with elapsed timer */}
+      <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', maxWidth: 420, border: '1px solid var(--border)', background: 'var(--surface)' }}>
         {status === 'loading' && (
-          <div style={{ width: '100%', aspectRatio: '4/3', background: 'linear-gradient(90deg, #1a1a2e 25%, #26263e 50%, #1a1a2e 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-            <span style={{ fontSize: 28 }}>🎨</span>
-            <span style={{ color: '#a1a1aa', fontSize: 13, fontWeight: 500 }}>Generating image…</span>
-            <span style={{ color: '#52525b', fontSize: 12 }}>{elapsed}s &bull; may take up to 30s</span>
+          <div style={{ width: '100%', aspectRatio: '4/3', background: 'var(--surface2)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+            <Loader2 size={24} className="animate-spin text-amber-400" />
+            <span style={{ color: 'var(--text)', fontSize: 13, fontWeight: 500 }}>Generating image…</span>
+            <span style={{ color: 'var(--muted)', fontSize: 12 }}>{elapsed}s · may take up to 30s</span>
           </div>
         )}
 
-        {/* Success */}
         {status === 'done' && blobUrl && (
           <img src={blobUrl} alt={prompt}
             style={{ display: 'block', width: '100%', cursor: 'zoom-in' }}
@@ -256,73 +247,64 @@ function ImageBubble({ imageUrl: initialUrl, prompt: initialPrompt }: { imageUrl
           />
         )}
 
-        {/* Error */}
         {status === 'error' && (
-          <div style={{ padding: 28, textAlign: 'center', color: '#71717a', fontSize: 13 }}>
-            <div style={{ fontSize: 28, marginBottom: 8 }}>⚠️</div>
+          <div style={{ padding: 28, textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
+            <AlertCircle size={28} style={{ color: '#ef4444', margin: '0 auto 8px' }} />
             Generation failed or timed out.
             <button onClick={() => fetchImage(rawUrl)}
-              style={{ display: 'block', margin: '10px auto 0', background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 8, padding: '5px 14px', color: '#a855f7', cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}
+              style={{ display: 'block', margin: '10px auto 0', background: 'rgba(229,169,90,0.15)', border: '1px solid rgba(229,169,90,0.3)', borderRadius: 8, padding: '5px 14px', color: 'var(--accent)', cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}
             >Retry</button>
           </div>
         )}
 
-        {/* Overlay action buttons — zoom + download */}
         {status === 'done' && blobUrl && (
           <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 6 }}>
             <button onClick={() => setLightbox(true)} title="View full size"
-              style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '5px 8px', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center' }}>
-              <ZoomIn size={13} />
+              style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center' }}>
+              <ZoomIn size={14} />
             </button>
             <a href={blobUrl} download={`nova-${Date.now()}.jpg`} title="Download"
-              style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '5px 8px', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-              <Download size={13} />
+              style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+              <Download size={14} />
             </a>
           </div>
         )}
       </div>
 
-      {/* Caption + variation controls */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5, maxWidth: 420, flexWrap: 'wrap' }}>
-        <p style={{ fontSize: 11, color: '#52525b', fontStyle: 'italic', margin: 0, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          🎨 &quot;{prompt}&quot;
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, maxWidth: 420, flexWrap: 'wrap' }}>
+        <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          &ldquo;{prompt}&rdquo;
         </p>
-        <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
-          <button onClick={() => reroll()} title="Generate a new variation" disabled={status === 'loading'}
-            style={{ display: 'flex', alignItems: 'center', gap: 3, background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.25)', borderRadius: 7, padding: '3px 8px', cursor: status === 'loading' ? 'not-allowed' : 'pointer', color: '#a855f7', fontSize: 11, fontFamily: 'inherit', opacity: status === 'loading' ? 0.5 : 1, transition: 'all 0.15s' }}
-            onMouseEnter={e => { if (status !== 'loading') e.currentTarget.style.background = 'rgba(124,58,237,0.2)'; }}
-            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(124,58,237,0.1)')}
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+          <button onClick={() => reroll()} title="Generate variation" disabled={status === 'loading'}
+            style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(229,169,90,0.1)', border: '1px solid rgba(229,169,90,0.25)', borderRadius: 7, padding: '3px 8px', cursor: status === 'loading' ? 'not-allowed' : 'pointer', color: 'var(--accent)', fontSize: 11, fontFamily: 'inherit', opacity: status === 'loading' ? 0.5 : 1, transition: 'all 0.15s' }}
           >
-            🔄 Variation
+            <RefreshCw size={11} /> Variation
           </button>
           <button onClick={() => { setEditVal(prompt); setEditPrompt(v => !v); }} title="Edit prompt"
-            style={{ display: 'flex', alignItems: 'center', gap: 3, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, padding: '3px 8px', cursor: 'pointer', color: '#71717a', fontSize: 11, fontFamily: 'inherit', transition: 'all 0.15s' }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#a1a1aa')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#71717a')}
+            style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 7, padding: '3px 8px', cursor: 'pointer', color: 'var(--muted)', fontSize: 11, fontFamily: 'inherit', transition: 'all 0.15s' }}
           >
-            ✏️ Edit prompt
+            <Pencil size={11} /> Edit
           </button>
         </div>
       </div>
 
-      {/* Edit prompt input */}
       {editPrompt && (
         <div style={{ marginTop: 6, maxWidth: 420, display: 'flex', gap: 6 }}>
           <input value={editVal} onChange={e => setEditVal(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && editVal.trim()) reroll(editVal.trim()); if (e.key === 'Escape') setEditPrompt(false); }}
             autoFocus placeholder="New prompt…"
-            style={{ flex: 1, background: '#18181b', border: '1px solid rgba(124,58,237,0.4)', borderRadius: 8, padding: '6px 10px', color: '#fafafa', fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
+            style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--accent)', borderRadius: 8, padding: '6px 10px', color: 'var(--text)', fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
           />
           <button onClick={() => { if (editVal.trim()) reroll(editVal.trim()); }}
-            style={{ background: 'linear-gradient(135deg,#7c3aed,#a855f7)', border: 'none', borderRadius: 8, padding: '6px 14px', color: '#fff', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+            style={{ background: 'var(--accent)', border: 'none', borderRadius: 8, padding: '6px 14px', color: '#0F0F10', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
             Go
           </button>
         </div>
       )}
 
-      {/* Lightbox */}
       {lightbox && blobUrl && (
-        <div onClick={() => setLightbox(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out', padding: 24 }}>
+        <div onClick={() => setLightbox(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out', padding: 24 }}>
           <img src={blobUrl} alt={prompt} style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 12, boxShadow: '0 32px 80px rgba(0,0,0,0.8)' }} onClick={e => e.stopPropagation()} />
           <button onClick={() => setLightbox(false)} style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 40, height: 40, cursor: 'pointer', color: '#fff', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
         </div>
@@ -334,8 +316,8 @@ function ImageBubble({ imageUrl: initialUrl, prompt: initialPrompt }: { imageUrl
 // ── Main bubble ───────────────────────────────────────────────────────────────
 export default function MessageBubble({ message, isLast, isLastAI, onRegenerate, onEdit, onReact, reaction }: Props) {
   const isUser    = message.role === 'user';
-  const isImage   = !!message.imageUrl && !isUser;  // AI-generated images only
-  const hasUserAttachment = isUser && !!message.imageUrl; // user-uploaded images
+  const isImage   = !!message.imageUrl && !isUser;
+  const hasUserAttachment = isUser && !!message.imageUrl;
   const [editing,   setEditing]   = useState(false);
   const [hovered,   setHovered]   = useState(false);
   const [speaking,  setSpeaking]  = useState(false);
@@ -349,7 +331,6 @@ export default function MessageBubble({ message, isLast, isLastAI, onRegenerate,
       setSpeaking(false);
       return;
     }
-    // Strip markdown syntax for cleaner speech
     const plainText = message.content
       .replace(/```[\s\S]*?```/g, 'code block.')
       .replace(/`([^`]+)`/g, '$1')
@@ -361,7 +342,6 @@ export default function MessageBubble({ message, isLast, isLastAI, onRegenerate,
     const utterance = new SpeechSynthesisUtterance(plainText);
     utterance.rate  = 1.05;
     utterance.pitch = 1;
-    // Prefer a natural-sounding English voice if available
     const voices = window.speechSynthesis.getVoices();
     const preferred = voices.find(v => v.lang.startsWith('en') && v.localService);
     if (preferred) utterance.voice = preferred;
@@ -371,7 +351,6 @@ export default function MessageBubble({ message, isLast, isLastAI, onRegenerate,
     window.speechSynthesis.speak(utterance);
   }, [speaking, message.content]);
 
-  // Stop speech when component unmounts
   useEffect(() => () => { window.speechSynthesis?.cancel(); }, []);
 
   const handleSave = (newContent: string) => {
@@ -386,50 +365,52 @@ export default function MessageBubble({ message, isLast, isLastAI, onRegenerate,
       transition={{ duration: 0.2 }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{ display: 'flex', flexDirection: isUser ? 'row-reverse' : 'row', alignItems: 'flex-start', gap: 10, marginBottom: 4 }}
+      style={{ display: 'flex', flexDirection: isUser ? 'row-reverse' : 'row', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}
     >
-      {/* NOVA avatar */}
-      {!isUser && (
-        <div style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, marginTop: 2, background: 'linear-gradient(135deg,#7c3aed,#a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: '#fff' }}>
-          N
+      {/* Avatar */}
+      {!isUser ? (
+        <div style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, marginTop: 4, background: 'var(--surface2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
+          <Sparkles size={14} />
+        </div>
+      ) : (
+        <div style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, marginTop: 4, background: 'var(--surface2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <User size={14} style={{ color: 'var(--muted)' }} />
         </div>
       )}
 
-      <div className={isUser ? 'msg-user' : 'msg-ai'} style={{ maxWidth: isUser ? '72%' : '85%', display: 'flex', flexDirection: 'column', gap: 4, alignItems: isUser ? 'flex-end' : 'flex-start' }}>
+      <div className={isUser ? 'msg-user' : 'msg-ai'} style={{ maxWidth: isUser ? '75%' : '88%', display: 'flex', flexDirection: 'column', gap: 4, alignItems: isUser ? 'flex-end' : 'flex-start' }}>
 
         {/* Image message */}
         {isImage ? (
           <ImageBubble imageUrl={message.imageUrl!} prompt={message.content} />
         ) : isUser && editing ? (
-          /* Edit mode */
           <div style={{ width: '100%', minWidth: 260 }}>
             <EditBox initial={message.content} onSave={handleSave} onCancel={() => setEditing(false)} />
           </div>
         ) : (
           /* Normal bubble */
           <div style={{
-            padding: isUser ? '10px 14px' : '12px 16px',
-            borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-            background: isUser ? 'linear-gradient(135deg,#7c3aed,#a855f7)' : 'var(--surface, #18181b)',
-            border: isUser ? 'none' : '1px solid var(--border, rgba(255,255,255,0.07))',
-            color: isUser ? '#fff' : 'var(--text2, #e4e4e7)',
-            fontSize: 14, lineHeight: 1.65, wordBreak: 'break-word',
-            overflow: 'hidden',
+            padding: isUser ? '10px 16px' : '8px 2px',
+            borderRadius: isUser ? 16 : 0,
+            background: isUser ? 'var(--surface2)' : 'transparent',
+            border: isUser ? '1px solid var(--border)' : 'none',
+            color: 'var(--text)',
+            fontSize: 14.5, lineHeight: 1.7, wordBreak: 'break-word',
           }}>
-            {/* User-attached image preview inside bubble */}
+            {/* User-attached image */}
             {hasUserAttachment && (
-              <div style={{ marginBottom: message.content && message.content !== '📎 Image attached' ? 8 : 0, borderRadius: 10, overflow: 'hidden', maxWidth: 260 }}>
+              <div style={{ marginBottom: message.content && message.content !== 'Image attached' ? 8 : 0, borderRadius: 10, overflow: 'hidden', maxWidth: 260, border: '1px solid var(--border)' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={message.imageUrl} alt="Attached" style={{ display: 'block', width: '100%', borderRadius: 10 }} />
+                <img src={message.imageUrl} alt="Attached" style={{ display: 'block', width: '100%' }} />
               </div>
             )}
             {isUser ? (
               <span style={{ whiteSpace: 'pre-wrap' }}>
-                {message.content === '📎 Image attached' && hasUserAttachment ? '' : message.content}
+                {message.content === 'Image attached' && hasUserAttachment ? '' : message.content}
               </span>
             ) : (
               /* AI markdown with streaming cursor */
-              <div className={`nova-markdown${message.isStreaming ? ' streaming-cursor' : ''}`} style={{ fontSize: 14 }}>
+              <div className={`nova-markdown${message.isStreaming ? ' streaming-cursor' : ''}`} style={{ fontSize: 14.5, color: 'var(--text)' }}>
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
@@ -439,25 +420,25 @@ export default function MessageBubble({ message, isLast, isLastAI, onRegenerate,
                       const code  = String(children).replace(/\n$/, '');
                       return !inline
                         ? <CodeBlock language={lang}>{code}</CodeBlock>
-                        : <code style={{ background: 'rgba(124,58,237,0.15)', padding: '2px 6px', borderRadius: 5, fontSize: 13, fontFamily: 'JetBrains Mono, monospace', color: '#c4b5fd' }} {...props}>{children}</code>;
+                        : <code style={{ background: 'rgba(229,169,90,0.12)', padding: '2px 6px', borderRadius: 5, fontSize: 13, fontFamily: 'JetBrains Mono, monospace', color: 'var(--accent)' }} {...props}>{children}</code>;
                     },
                     a({ href, children }) {
-                      return <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: '#06b6d4', textDecoration: 'underline', textUnderlineOffset: 3 }}>{children}</a>;
+                      return <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline', textUnderlineOffset: 3 }}>{children}</a>;
                     },
                     table({ children }) {
-                      return <div style={{ overflowX: 'auto', marginTop: 8 }}><table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 13 }}>{children}</table></div>;
+                      return <div style={{ overflowX: 'auto', margin: '12px 0' }}><table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 13 }}>{children}</table></div>;
                     },
                     th({ children }) {
-                      return <th style={{ border: '1px solid rgba(255,255,255,0.1)', padding: '6px 10px', background: 'rgba(124,58,237,0.15)', textAlign: 'left', fontWeight: 600 }}>{children}</th>;
+                      return <th style={{ border: '1px solid var(--border)', padding: '8px 12px', background: 'var(--surface)', textAlign: 'left', fontWeight: 600, color: 'var(--text)' }}>{children}</th>;
                     },
                     td({ children }) {
-                      return <td style={{ border: '1px solid rgba(255,255,255,0.07)', padding: '6px 10px' }}>{children}</td>;
+                      return <td style={{ border: '1px solid var(--border)', padding: '8px 12px', color: 'var(--muted)' }}>{children}</td>;
                     },
                     blockquote({ children }) {
-                      return <blockquote style={{ borderLeft: '3px solid #7c3aed', margin: '8px 0', paddingLeft: 12, color: '#a1a1aa', fontStyle: 'italic' }}>{children}</blockquote>;
+                      return <blockquote style={{ borderLeft: '3px solid var(--accent)', margin: '12px 0', paddingLeft: 14, color: 'var(--muted)', fontStyle: 'italic' }}>{children}</blockquote>;
                     },
                     hr() {
-                      return <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.08)', margin: '12px 0' }} />;
+                      return <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '16px 0' }} />;
                     },
                   }}
                 >
@@ -472,39 +453,34 @@ export default function MessageBubble({ message, isLast, isLastAI, onRegenerate,
         {!editing && !isImage && (
           <motion.div
             initial={false}
-            animate={{ opacity: hovered ? 1 : 0.45 }}
+            animate={{ opacity: hovered ? 1 : 0.4 }}
             transition={{ duration: 0.15 }}
-            style={{ display: 'flex', alignItems: 'center', gap: 4, paddingLeft: 2, paddingRight: 2 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 2, paddingRight: 2, marginTop: 2 }}
           >
-            <span style={{ fontSize: 11, color: '#52525b' }}>{time}</span>
+            <span style={{ fontSize: 11, color: 'var(--muted)' }}>{time}</span>
             <CopyBtn text={message.content} size={12} />
 
             {/* TTS — AI messages only, not streaming */}
             {!isUser && !message.isStreaming && 'speechSynthesis' in (typeof window !== 'undefined' ? window : {}) && (
-              <motion.button
-                whileTap={{ scale: 0.85 }}
+              <button
                 onClick={speak}
                 title={speaking ? 'Stop reading' : 'Read aloud'}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 3,
-                  background: speaking ? 'rgba(124,58,237,0.12)' : 'none',
-                  border: speaking ? '1px solid rgba(124,58,237,0.3)' : '1px solid transparent',
+                  background: speaking ? 'rgba(229,169,90,0.15)' : 'none',
+                  border: speaking ? '1px solid rgba(229,169,90,0.3)' : '1px solid transparent',
                   borderRadius: 6, cursor: 'pointer', padding: '2px 5px',
-                  color: speaking ? '#a855f7' : '#71717a', transition: 'all 0.15s', fontSize: 11,
+                  color: speaking ? 'var(--accent)' : 'var(--muted)', transition: 'all 0.15s', fontSize: 11,
                 }}
-                onMouseEnter={e => { if (!speaking) e.currentTarget.style.color = '#a855f7'; }}
-                onMouseLeave={e => { if (!speaking) e.currentTarget.style.color = '#71717a'; }}
               >
-                {speaking ? <VolumeX size={11} /> : <Volume2 size={11} />}
-              </motion.button>
+                {speaking ? <VolumeX size={12} /> : <Volume2 size={12} />}
+              </button>
             )}
 
             {/* Edit (user only) */}
             {isUser && onEdit && (
               <button onClick={() => setEditing(true)} title="Edit"
-                style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: '#71717a', fontSize: 11, padding: '2px 4px', transition: 'color 0.15s', fontFamily: 'inherit' }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#a78bfa')}
-                onMouseLeave={e => (e.currentTarget.style.color = '#71717a')}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 11, padding: '2px 4px', transition: 'color 0.15s', fontFamily: 'inherit' }}
               >
                 <Pencil size={11} /> Edit
               </button>
@@ -513,9 +489,7 @@ export default function MessageBubble({ message, isLast, isLastAI, onRegenerate,
             {/* Regenerate (last AI) */}
             {isLastAI && onRegenerate && !message.isStreaming && (
               <button onClick={onRegenerate} title="Regenerate"
-                style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: '#71717a', fontSize: 11, padding: '2px 4px', transition: 'color 0.15s', fontFamily: 'inherit' }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#a78bfa')}
-                onMouseLeave={e => (e.currentTarget.style.color = '#71717a')}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 11, padding: '2px 4px', transition: 'color 0.15s', fontFamily: 'inherit' }}
               >
                 <RefreshCw size={11} /> Regenerate
               </button>
@@ -523,37 +497,28 @@ export default function MessageBubble({ message, isLast, isLastAI, onRegenerate,
 
             {/* Reactions (AI only, not streaming) */}
             {!isUser && onReact && !message.isStreaming && (
-              <div style={{ display: 'flex', gap: 2, marginLeft: 4 }}>
+              <div style={{ display: 'flex', gap: 3, marginLeft: 4 }}>
                 {(['up', 'down'] as const).map(dir => (
-                  <motion.button key={dir} whileTap={{ scale: 0.8 }}
+                  <button key={dir}
                     onClick={() => onReact(dir)}
                     title={dir === 'up' ? 'Good response' : 'Poor response'}
                     style={{
                       display: 'flex', alignItems: 'center', background: reaction === dir ? (dir === 'up' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.12)') : 'none',
                       border: reaction === dir ? `1px solid ${dir === 'up' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.25)'}` : '1px solid transparent',
                       borderRadius: 6, cursor: 'pointer', padding: '2px 5px', transition: 'all 0.15s',
-                      color: reaction === dir ? (dir === 'up' ? '#10b981' : '#ef4444') : '#71717a',
+                      color: reaction === dir ? (dir === 'up' ? '#10b981' : '#ef4444') : 'var(--muted)',
                     }}
-                    onMouseEnter={e => { if (reaction !== dir) e.currentTarget.style.color = dir === 'up' ? '#10b981' : '#ef4444'; }}
-                    onMouseLeave={e => { if (reaction !== dir) e.currentTarget.style.color = '#71717a'; }}
                   >
                     {dir === 'up'
                       ? <ThumbsUp  size={11} fill={reaction === 'up'   ? 'currentColor' : 'none'} />
                       : <ThumbsDown size={11} fill={reaction === 'down' ? 'currentColor' : 'none'} />}
-                  </motion.button>
+                  </button>
                 ))}
               </div>
             )}
           </motion.div>
         )}
       </div>
-
-      {/* User avatar */}
-      {isUser && (
-        <div style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, marginTop: 2, background: '#27272a', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <User size={15} style={{ color: '#71717a' }} />
-        </div>
-      )}
     </motion.div>
   );
 }

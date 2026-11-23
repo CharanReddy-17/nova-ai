@@ -1,48 +1,51 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Sparkles, FlaskConical, Code2, PenLine, GraduationCap, LucideIcon } from 'lucide-react';
 
-export const PERSONAS = [
+export interface PersonaItem {
+  id: string;
+  name: string;
+  icon: LucideIcon;
+  tagline: string;
+  color: string;
+}
+
+export const PERSONAS: PersonaItem[] = [
   {
     id: 'default',
     name: 'NOVA AI',
-    emoji: '🤖',
+    icon: Sparkles,
     tagline: 'General assistant',
-    color: '#7c3aed',
-    gradient: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+    color: '#E5A95A',
   },
   {
     id: 'scientist',
     name: 'Scientist',
-    emoji: '🔬',
+    icon: FlaskConical,
     tagline: 'Science & research expert',
-    color: '#06b6d4',
-    gradient: 'linear-gradient(135deg, #0e7490, #06b6d4)',
+    color: '#38bdf8',
   },
   {
     id: 'coder',
     name: 'Coder',
-    emoji: '💻',
-    tagline: 'Programming & code expert',
-    color: '#10b981',
-    gradient: 'linear-gradient(135deg, #059669, #10b981)',
+    icon: Code2,
+    tagline: 'Programming & systems expert',
+    color: '#34d399',
   },
   {
     id: 'writer',
     name: 'Writer',
-    emoji: '✍️',
-    tagline: 'Creative writing & editing',
-    color: '#f59e0b',
-    gradient: 'linear-gradient(135deg, #d97706, #fbbf24)',
+    icon: PenLine,
+    tagline: 'Creative writing & editor',
+    color: '#fbbf24',
   },
   {
     id: 'tutor',
     name: 'Tutor',
-    emoji: '👨‍🏫',
+    icon: GraduationCap,
     tagline: 'Patient educational mentor',
-    color: '#ec4899',
-    gradient: 'linear-gradient(135deg, #db2777, #f472b6)',
+    color: '#f472b6',
   },
 ];
 
@@ -55,6 +58,7 @@ export default function PersonaSelector({ selectedPersona, onSelect }: PersonaSe
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const current = PERSONAS.find(p => p.id === selectedPersona) || PERSONAS[0];
+  const CurrentIcon = current.icon;
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -71,66 +75,65 @@ export default function PersonaSelector({ selectedPersona, onSelect }: PersonaSe
         onClick={() => setOpen(v => !v)}
         style={{
           display: 'flex', alignItems: 'center', gap: 7,
-          padding: '5px 10px 5px 7px',
-          background: open ? `${current.color}22` : 'rgba(255,255,255,0.05)',
-          border: `1px solid ${open ? current.color + '55' : 'rgba(255,255,255,0.08)'}`,
-          borderRadius: 10, cursor: 'pointer', color: '#fff',
+          padding: '6px 10px',
+          background: open ? 'var(--surface2)' : 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 8, cursor: 'pointer', color: 'var(--text)',
           transition: 'all 0.15s',
         }}
       >
-        <span style={{ fontSize: 16, lineHeight: 1 }}>{current.emoji}</span>
-        <span style={{ fontSize: 12, fontWeight: 500 }}>{current.name}</span>
-        <ChevronDown size={12} style={{ opacity: 0.4, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+        <CurrentIcon size={14} style={{ color: current.color }} />
+        <span style={{ fontSize: 13, fontWeight: 500 }}>{current.name}</span>
+        <ChevronDown size={13} style={{ color: 'var(--muted)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
       </button>
 
       {/* Dropdown */}
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.97 }}
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.97 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
             transition={{ duration: 0.15 }}
             style={{
               position: 'absolute', top: 'calc(100% + 6px)', left: 0,
-              minWidth: 230, background: '#111113',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 14, padding: 6,
-              boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+              minWidth: 220, background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 12, padding: 6,
+              boxShadow: '0 16px 40px rgba(0,0,0,0.4)',
             }}
           >
-            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', padding: '4px 8px 6px', letterSpacing: '0.08em', fontWeight: 600 }}>
-              CHOOSE PERSONA
+            <p style={{ fontSize: 10, color: 'var(--muted)', padding: '4px 8px 6px', letterSpacing: '0.08em', fontWeight: 600 }}>
+              SELECT PERSONA
             </p>
             {PERSONAS.map(p => {
               const active = p.id === selectedPersona;
+              const IconComp = p.icon;
               return (
                 <button
                   key={p.id}
                   onClick={() => { onSelect(p.id); setOpen(false); }}
                   style={{
                     width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '9px 10px', borderRadius: 10, border: 'none',
-                    cursor: 'pointer', textAlign: 'left', color: '#fff',
-                    background: active ? `${p.color}20` : 'transparent',
+                    padding: '8px 10px', borderRadius: 8, border: 'none',
+                    cursor: 'pointer', textAlign: 'left', color: 'var(--text)',
+                    background: active ? 'var(--surface2)' : 'transparent',
                     transition: 'background 0.15s',
                   }}
-                  onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)'; }}
+                  onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'var(--surface2)'; }}
                   onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
                 >
-                  {/* Emoji circle */}
                   <div style={{
-                    width: 34, height: 34, borderRadius: 9, display: 'flex',
+                    width: 28, height: 28, borderRadius: 7, display: 'flex',
                     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    background: active ? `${p.color}30` : 'rgba(255,255,255,0.05)',
-                    border: `1px solid ${active ? p.color + '50' : 'rgba(255,255,255,0.06)'}`,
-                    fontSize: 17,
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
                   }}>
-                    {p.emoji}
+                    <IconComp size={14} style={{ color: p.color }} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: active ? 600 : 400, color: active ? '#fafafa' : '#a1a1aa' }}>{p.name}</p>
-                    <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{p.tagline}</p>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: active ? 600 : 400, color: active ? 'var(--text)' : 'var(--muted)' }}>{p.name}</p>
+                    <p style={{ margin: 0, fontSize: 11, color: 'var(--muted)' }}>{p.tagline}</p>
                   </div>
                   {active && <div style={{ width: 6, height: 6, borderRadius: '50%', background: p.color, flexShrink: 0 }} />}
                 </button>

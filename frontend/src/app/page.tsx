@@ -1,288 +1,313 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import {
+  Sparkles, Zap, Brain, ShieldCheck, ArrowRight,
+  Code2, Check, User
+} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 const FEATURES = [
-  { icon: '⚡', title: 'Lightning Fast', desc: 'Responses in under 1 second, powered by Groq infrastructure — the fastest AI API on earth.' },
-  { icon: '🧠', title: 'Truly Intelligent', desc: 'LLaMA 3.3 70B understands context, writes code, explains complex topics and reasons step-by-step.' },
-  { icon: '🔒', title: 'Private & Secure', desc: 'Your conversations are stored securely in your account. Never used for training. Always yours.' },
+  {
+    icon: Zap,
+    title: 'Instant Groq Execution',
+    desc: 'Sub-second streaming latency powered by dedicated Groq LPU inference. Fast, responsive, seamless.',
+  },
+  {
+    icon: Brain,
+    title: 'LLaMA 3.3 Intelligence',
+    desc: 'Deep reasoning, precision code generation, and nuanced writing across multiple specialized personas.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Private & Distraction-Free',
+    desc: 'Zero clutter, clean typography, secure encrypted sessions, and full ownership of your data.',
+  },
 ];
 
 const STEPS = [
-  { n: '01', title: 'Create your free account', desc: 'Sign up in seconds — no credit card required.' },
-  { n: '02', title: 'Type your first message', desc: 'Ask anything. Code, math, science, writing — anything.' },
-  { n: '03', title: 'Get instant answers', desc: 'Watch NOVA AI respond with clarity and depth.' },
-];
-
-const FAKE_CHAT = [
-  { role: 'user', text: 'What is a black hole?' },
-  { role: 'ai', text: 'A black hole is a region of spacetime where gravity is so strong that nothing — not even light — can escape once it crosses the event horizon…' },
+  { n: '01', title: 'Create your account', desc: 'Sign up in seconds — no payment details or setup required.' },
+  { n: '02', title: 'Choose model or persona', desc: 'Select from LLaMA 3.3 70B, Mixtral, or specialized roles like Coder and Scientist.' },
+  { n: '03', title: 'Chat, code, and create', desc: 'Experience instant answers, inline code running, and cinematic image generation.' },
 ];
 
 export default function Home() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [scrolled, setScrolled] = useState(false);
-  const [showTyping, setShowTyping] = useState(true);
 
   useEffect(() => {
     if (!isLoading && user) router.replace('/dashboard');
   }, [user, isLoading, router]);
 
-  // Navbar shadow on scroll
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Animated particle canvas
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d')!;
-    let animId: number;
-    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
-    resize();
-    window.addEventListener('resize', resize);
-    const particles = Array.from({ length: 60 }, () => ({
-      x: Math.random() * window.innerWidth,
-      y: Math.random() * window.innerHeight,
-      r: Math.random() * 1.2 + 0.3,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: (Math.random() - 0.5) * 0.3,
-      opacity: Math.random() * 0.5 + 0.1,
-    }));
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particles.forEach(p => {
-        p.x += p.vx; p.y += p.vy;
-        if (p.x < 0) p.x = canvas.width;
-        if (p.x > canvas.width) p.x = 0;
-        if (p.y < 0) p.y = canvas.height;
-        if (p.y > canvas.height) p.y = 0;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(244,174,82,${p.opacity})`;
-        ctx.fill();
-      });
-      animId = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize); };
-  }, []);
-
-  // Typing blink for fake chat
-  useEffect(() => {
-    const t = setInterval(() => setShowTyping(v => !v), 600);
-    return () => clearInterval(t);
-  }, []);
-
   return (
-    <div style={{ background: '#2A1A0E', minHeight: '100vh', overflowX: 'hidden' }}>
-      {/* Particle bg */}
-      <canvas ref={canvasRef} style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }} />
-
-      {/* Gradient orbs */}
+    <div style={{ background: '#0F0F10', minHeight: '100vh', color: '#F4F4F5', overflowX: 'hidden' }}>
+      {/* Ambient background glows */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: '-20%', left: '-10%', width: 600, height: 600, background: 'radial-gradient(circle, rgba(212,98,26,0.22) 0%, transparent 70%)', borderRadius: '50%' }} />
-        <div style={{ position: 'absolute', bottom: '-10%', right: '-10%', width: 500, height: 500, background: 'radial-gradient(circle, rgba(244,174,82,0.18) 0%, transparent 70%)', borderRadius: '50%' }} />
-        <div style={{ position: 'absolute', top: '40%', left: '50%', width: 400, height: 400, background: 'radial-gradient(circle, rgba(212,98,26,0.12) 0%, transparent 70%)', borderRadius: '50%', transform: 'translate(-50%,-50%)' }} />
+        <div style={{ position: 'absolute', top: '-15%', left: '50%', transform: 'translateX(-50%)', width: 700, height: 500, background: 'radial-gradient(circle, rgba(229,169,90,0.08) 0%, transparent 70%)', filter: 'blur(40px)' }} />
       </div>
 
       {/* ── Navbar ─────────────────────────────────────────────────────────── */}
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 40px', height: 64,
-        background: scrolled ? 'rgba(42,26,14,0.92)' : 'transparent',
-        backdropFilter: scrolled ? 'blur(20px)' : 'none',
-        borderBottom: scrolled ? '1px solid rgba(254,243,226,0.08)' : 'none',
-        transition: 'all 0.3s ease',
+        padding: '0 32px', height: 60,
+        background: scrolled ? 'rgba(15,15,16,0.85)' : 'transparent',
+        backdropFilter: scrolled ? 'blur(16px)' : 'none',
+        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : '1px solid transparent',
+        transition: 'all 0.25s ease',
       }}>
-        <a href="/" className="nova-logo" style={{ textDecoration: 'none' }}>
-          <div className="nova-logo-icon">N</div>
-          <span>NOVA AI</span>
-        </a>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 8,
+            background: 'var(--surface2, #1C1C1F)', border: '1px solid rgba(255,255,255,0.1)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#E5A95A',
+          }}>
+            <Sparkles size={15} />
+          </div>
+          <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.02em', color: '#F4F4F5' }}>NOVA AI</span>
+        </div>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button className="btn-ghost" onClick={() => router.push('/login')} style={{ fontSize: 14 }}>Sign In</button>
-          <button className="btn-primary" onClick={() => router.push('/login?mode=register')} style={{ fontSize: 14 }}>Get Started Free →</button>
+          <button
+            onClick={() => router.push('/login')}
+            style={{
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              color: '#A1A1AA', fontSize: 13.5, fontWeight: 500, padding: '8px 14px',
+              borderRadius: 8, transition: 'color 0.15s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#F4F4F5')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#A1A1AA')}
+          >
+            Sign in
+          </button>
+          <button
+            onClick={() => router.push('/login?mode=register')}
+            style={{
+              background: '#E5A95A', color: '#0F0F10', border: 'none',
+              cursor: 'pointer', fontSize: 13.5, fontWeight: 600, padding: '8px 16px',
+              borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6,
+              transition: 'opacity 0.15s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+          >
+            <span>Get Started</span>
+            <ArrowRight size={14} />
+          </button>
         </div>
       </nav>
 
-      {/* ── Hero ───────────────────────────────────────────────────────────── */}
-      <section style={{ position: 'relative', zIndex: 1, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '120px 24px 80px', flexDirection: 'column', textAlign: 'center' }}>
-
-        {/* Badge */}
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <div className="badge badge-purple" style={{ marginBottom: 28, fontSize: 12 }}>
-            ✦ Powered by LLaMA 3.3 70B · 100% Free
+      {/* ── Hero Section ───────────────────────────────────────────────────── */}
+      <section style={{
+        position: 'relative', zIndex: 1, minHeight: '90vh',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexDirection: 'column', textAlign: 'center', padding: '120px 24px 60px',
+      }}>
+        {/* Subtle badge */}
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 7,
+            padding: '5px 12px', borderRadius: 20,
+            background: 'rgba(229,169,90,0.1)', border: '1px solid rgba(229,169,90,0.25)',
+            fontSize: 12, fontWeight: 500, color: '#E5A95A', marginBottom: 28,
+          }}>
+            <Sparkles size={12} />
+            <span>Powered by Groq LPU & LLaMA 3.3 70B</span>
           </div>
         </motion.div>
 
-        {/* Headline */}
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.7 }}>
-          <h1 style={{ fontSize: 'clamp(48px, 8vw, 88px)', fontWeight: 900, lineHeight: 1.05, marginBottom: 24, letterSpacing: '-2px' }}>
-            <span className="gradient-text">Chat Smarter.</span>
-            <br />
-            <span style={{ color: '#fafafa' }}>Think Deeper.</span>
+        {/* Main Headline */}
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.6 }}>
+          <h1 style={{
+            fontSize: 'clamp(38px, 6vw, 68px)', fontWeight: 700,
+            lineHeight: 1.1, letterSpacing: '-0.03em', maxWidth: 780,
+            margin: '0 auto 20px', color: '#F4F4F5',
+          }}>
+            Intelligent conversations, designed for focus.
           </h1>
         </motion.div>
 
-        {/* Subtext */}
-        <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
-          style={{ fontSize: 18, color: '#a1a1aa', maxWidth: 520, lineHeight: 1.7, marginBottom: 40 }}>
-          NOVA AI combines cutting-edge artificial intelligence with beautiful design.
-          Ask anything, explore everything — completely free.
+        {/* Subtitle */}
+        <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
+          style={{ fontSize: 16, color: '#A1A1AA', maxWidth: 520, lineHeight: 1.6, margin: '0 auto 36px' }}>
+          A distraction-free AI workspace engineered with executive minimalism, instantaneous inference, and deep reasoning capabilities.
         </motion.p>
 
-        {/* CTA buttons */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-          style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 16 }}>
-          <button className="btn-primary" onClick={() => router.push('/login?mode=register')}
-            style={{ fontSize: 16, padding: '14px 32px', borderRadius: 12 }}>
-            🚀 Start for Free
+        {/* CTA group */}
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}
+          style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 48 }}>
+          <button
+            onClick={() => router.push('/login?mode=register')}
+            style={{
+              background: '#E5A95A', color: '#0F0F10', border: 'none',
+              cursor: 'pointer', fontSize: 14.5, fontWeight: 600, padding: '12px 24px',
+              borderRadius: 10, display: 'flex', alignItems: 'center', gap: 8,
+              boxShadow: '0 4px 16px rgba(229,169,90,0.2)',
+            }}
+          >
+            <span>Start Exploring</span>
+            <ArrowRight size={16} />
           </button>
-          <button className="btn-secondary" onClick={() => router.push('/login')}
-            style={{ fontSize: 16, padding: '14px 32px', borderRadius: 12 }}>
+          <button
+            onClick={() => router.push('/login')}
+            style={{
+              background: 'rgba(255,255,255,0.04)', color: '#F4F4F5',
+              border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer',
+              fontSize: 14.5, fontWeight: 500, padding: '12px 24px', borderRadius: 10,
+            }}
+          >
             Sign In
           </button>
         </motion.div>
 
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.65 }}
-          style={{ fontSize: 13, color: '#52525b' }}>
-          No credit card required · Instant access · Free forever
-        </motion.p>
-
-        {/* Floating chat preview card */}
+        {/* Sleek App Preview Window */}
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: [0, -10, 0] }}
-          transition={{ opacity: { delay: 0.8, duration: 0.6 }, y: { delay: 0.8, duration: 3, repeat: Infinity, ease: 'easeInOut' } }}
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, duration: 0.7 }}
           style={{
-            marginTop: 64,
-            background: 'rgba(61,37,18,0.9)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(254,243,226,0.12)',
-            borderRadius: 20,
-            padding: 20,
-            width: '100%',
-            maxWidth: 420,
-            boxShadow: '0 24px 64px rgba(42,26,14,0.6), 0 0 40px rgba(212,98,26,0.2)',
+            width: '100%', maxWidth: 680,
+            background: '#141416', border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 18, overflow: 'hidden', textAlign: 'left',
+            boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
+          }}
+        >
+          {/* Window header */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '12px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)',
+            background: '#18181B',
           }}>
-          {/* Fake chat */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#EF4444', opacity: 0.8 }} />
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#F59E0B', opacity: 0.8 }} />
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#10B981', opacity: 0.8 }} />
+            </div>
+            <div style={{ fontSize: 11, color: '#71717A', fontWeight: 500 }}>
+              NOVA AI · LLaMA 3.3 70B
+            </div>
+            <div style={{ width: 30 }} />
+          </div>
+
+          {/* Conversation preview */}
+          <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* User message */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <div className="chat-bubble-user" style={{ fontSize: 14, maxWidth: '80%' }}>
-                What is a black hole? 🌌
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <div style={{
+                background: '#242428', border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 14, padding: '10px 16px', fontSize: 13.5, color: '#F4F4F5', maxWidth: '80%',
+              }}>
+                Can you explain the mechanics of quantum entanglement in simple terms?
+              </div>
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: '#242428', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <User size={14} style={{ color: '#A1A1AA' }} />
               </div>
             </div>
+
             {/* AI message */}
-            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-              <div className="avatar" style={{ width: 28, height: 28, fontSize: 12 }}>N</div>
-              <div className="chat-bubble-ai" style={{ fontSize: 13, maxWidth: '85%' }}>
-                A black hole is a region of spacetime where gravity is so intense that nothing — not even light — can escape once past the event horizon...
-                {showTyping && <span style={{ color: '#F4AE52', marginLeft: 2 }}>|</span>}
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: '#242428', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#E5A95A' }}>
+                <Sparkles size={14} />
+              </div>
+              <div style={{ fontSize: 13.5, lineHeight: 1.6, color: '#D4D4D8', maxWidth: '88%' }}>
+                Quantum entanglement occurs when two particles become deeply interconnected such that measuring the quantum state of one immediately dictates the state of the other — no matter how far apart they are in space.
               </div>
             </div>
           </div>
-          {/* Bottom bar */}
-          <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(254,243,226,0.08)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ flex: 1, background: 'rgba(254,243,226,0.05)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#c9a06a' }}>
-              Message NOVA AI...
-            </div>
-            <div style={{ width: 30, height: 30, background: 'linear-gradient(135deg,#D4621A,#F4AE52)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#2A1A0E' }}>↑</div>
-          </div>
         </motion.div>
       </section>
 
-      {/* ── Features ───────────────────────────────────────────────────────── */}
-      <section style={{ position: 'relative', zIndex: 1, padding: '100px 24px', maxWidth: 1100, margin: '0 auto' }}>
-        <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} style={{ textAlign: 'center', marginBottom: 60 }}>
-          <div className="badge badge-cyan" style={{ marginBottom: 16 }}>FEATURES</div>
-          <h2 style={{ fontSize: 'clamp(28px,4vw,44px)', fontWeight: 800, color: '#fafafa', marginBottom: 12 }}>
-            Everything you need in one place
+      {/* ── Features Grid ──────────────────────────────────────────────────── */}
+      <section style={{ padding: '80px 24px', maxWidth: 1040, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: 54 }}>
+          <h2 style={{ fontSize: 'clamp(24px, 3.5vw, 36px)', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 12 }}>
+            Engineered for clarity and speed
           </h2>
-          <p style={{ color: '#71717a', fontSize: 16, maxWidth: 440, margin: '0 auto' }}>
-            Designed for thinkers, creators, and problem-solvers.
+          <p style={{ color: '#71717A', fontSize: 14.5 }}>
+            Everything you need for an executive research and development workflow.
           </p>
-        </motion.div>
+        </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-          {FEATURES.map((f, i) => (
-            <motion.div key={f.title}
-              initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }} transition={{ delay: i * 0.12 }}
-              className="glass card-hover"
-              style={{ padding: 28 }}>
-              <div style={{ fontSize: 36, marginBottom: 16 }}>{f.icon}</div>
-              <h3 style={{ color: '#fafafa', fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{f.title}</h3>
-              <p style={{ color: '#71717a', fontSize: 14, lineHeight: 1.6 }}>{f.desc}</p>
-            </motion.div>
-          ))}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20 }}>
+          {FEATURES.map((f, i) => {
+            const Icon = f.icon;
+            return (
+              <motion.div
+                key={f.title}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                style={{
+                  background: '#141416', border: '1px solid rgba(255,255,255,0.06)',
+                  borderRadius: 14, padding: '24px 22px',
+                }}
+              >
+                <div style={{
+                  width: 38, height: 38, borderRadius: 10,
+                  background: 'rgba(229,169,90,0.1)', border: '1px solid rgba(229,169,90,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#E5A95A', marginBottom: 16,
+                }}>
+                  <Icon size={18} />
+                </div>
+                <h3 style={{ fontSize: 16, fontWeight: 600, color: '#F4F4F5', marginBottom: 8 }}>{f.title}</h3>
+                <p style={{ fontSize: 13.5, color: '#71717A', lineHeight: 1.6, margin: 0 }}>{f.desc}</p>
+              </motion.div>
+            );
+          })}
         </div>
       </section>
 
-      {/* ── How it works ───────────────────────────────────────────────────── */}
-      <section style={{ position: 'relative', zIndex: 1, padding: '80px 24px', maxWidth: 900, margin: '0 auto' }}>
-        <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} style={{ textAlign: 'center', marginBottom: 56 }}>
-          <h2 style={{ fontSize: 'clamp(26px,3.5vw,40px)', fontWeight: 800, color: '#fafafa', marginBottom: 12 }}>
-            Up and running in 30 seconds
-          </h2>
-          <p style={{ color: '#71717a', fontSize: 15 }}>No setup. No tutorials. Just open and chat.</p>
-        </motion.div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* ── Steps ──────────────────────────────────────────────────────────── */}
+      <section style={{ padding: '60px 24px 100px', maxWidth: 840, margin: '0 auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {STEPS.map((s, i) => (
-            <motion.div key={s.n}
-              initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }} transition={{ delay: i * 0.15 }}
-              style={{ display: 'flex', alignItems: 'flex-start', gap: 24, padding: '24px 28px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: '#D4621A', fontFamily: 'JetBrains Mono, monospace', minWidth: 28 }}>{s.n}</div>
+            <motion.div
+              key={s.n}
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
+              style={{
+                display: 'flex', alignItems: 'flex-start', gap: 20,
+                padding: '20px 24px', background: '#141416',
+                border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14,
+              }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#E5A95A', fontFamily: 'monospace', minWidth: 28, marginTop: 2 }}>
+                {s.n}
+              </div>
               <div>
-                <h3 style={{ color: '#fafafa', fontWeight: 700, fontSize: 17, marginBottom: 4 }}>{s.title}</h3>
-                <p style={{ color: '#71717a', fontSize: 14 }}>{s.desc}</p>
+                <h3 style={{ fontSize: 15, fontWeight: 600, color: '#F4F4F5', margin: '0 0 4px' }}>{s.title}</h3>
+                <p style={{ fontSize: 13.5, color: '#71717A', margin: 0, lineHeight: 1.5 }}>{s.desc}</p>
               </div>
             </motion.div>
           ))}
         </div>
-      </section>
-
-      {/* ── CTA Banner ─────────────────────────────────────────────────────── */}
-      <section style={{ position: 'relative', zIndex: 1, padding: '80px 24px' }}>
-        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center', padding: '56px 32px', background: 'linear-gradient(135deg, rgba(212,98,26,0.2), rgba(244,174,82,0.1))', border: '1px solid rgba(212,98,26,0.3)', borderRadius: 24, boxShadow: '0 0 60px rgba(212,98,26,0.15)' }}>
-          <h2 style={{ fontSize: 'clamp(24px,4vw,40px)', fontWeight: 800, color: '#fafafa', marginBottom: 16 }}>
-            Ready to think differently?
-          </h2>
-          <p style={{ color: '#a1a1aa', marginBottom: 32, fontSize: 16 }}>
-            Join and start your first conversation — it takes 10 seconds.
-          </p>
-          <button className="btn-primary" onClick={() => router.push('/login?mode=register')}
-            style={{ fontSize: 16, padding: '14px 36px', borderRadius: 12 }}>
-            Get Started — It&apos;s Free ✦
-          </button>
-        </motion.div>
       </section>
 
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
-      <footer style={{ position: 'relative', zIndex: 1, borderTop: '1px solid rgba(255,255,255,0.05)', padding: '32px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-        <div className="nova-logo" style={{ fontSize: 14 }}>
-          <div className="nova-logo-icon" style={{ width: 26, height: 26, fontSize: 12, borderRadius: 7 }}>N</div>
-          <span>NOVA AI</span>
+      <footer style={{
+        borderTop: '1px solid rgba(255,255,255,0.06)',
+        padding: '28px 32px', display: 'flex', alignItems: 'center',
+        justifyContent: 'space-between', flexWrap: 'wrap', gap: 16,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#71717A' }}>
+          <Sparkles size={14} style={{ color: '#E5A95A' }} />
+          <span>NOVA AI — Minimalist Intelligence</span>
         </div>
-        <p style={{ color: '#52525b', fontSize: 13 }}>© 2025 NOVA AI · Built with ❤️ using MERN Stack</p>
-        <div style={{ display: 'flex', gap: 20 }}>
-          {['Privacy', 'Terms', 'GitHub'].map(l => (
-            <a key={l} href="#" style={{ color: '#52525b', fontSize: 13, textDecoration: 'none' }}
-              onMouseEnter={e => (e.currentTarget.style.color = '#a1a1aa')}
-              onMouseLeave={e => (e.currentTarget.style.color = '#52525b')}>{l}</a>
-          ))}
-        </div>
+        <p style={{ color: '#52525B', fontSize: 12, margin: 0 }}>
+          Designed with simplicity and precision
+        </p>
       </footer>
     </div>
   );

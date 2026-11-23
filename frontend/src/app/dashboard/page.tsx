@@ -2,6 +2,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
+import {
+  Sparkles, Code2, PenLine, Compass, Atom, GraduationCap,
+  BarChart2, Keyboard, Share2, Download, Wand2, Terminal,
+  BookOpen, Lightbulb, Menu, Search, LucideIcon
+} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { chatService, Chat, Message } from '@/services/chatService';
 import { useIsMobile } from '@/hooks/useMediaQuery';
@@ -19,37 +24,43 @@ import ShortcutsModal from '@/components/ui/ShortcutsModal';
 import ShareModal from '@/components/ui/ShareModal';
 import { useTheme } from '@/context/ThemeContext';
 
-// ── Suggestion chips per persona ─────────────────────────────────────────────
-const SUGGESTIONS: Record<string, { icon: string; text: string }[]> = {
+// ── Suggestion chips per persona (Clean Lucide vector icons) ─────────────────
+interface SuggestionItem {
+  icon: LucideIcon;
+  title: string;
+  text: string;
+}
+
+const SUGGESTIONS: Record<string, SuggestionItem[]> = {
   default: [
-    { icon: '💻', text: 'Write a Python function to reverse a linked list' },
-    { icon: '✍️', text: 'Write a short story about an AI that falls in love' },
-    { icon: '🧠', text: 'Explain the difference between TCP and UDP' },
-    { icon: '📊', text: 'What are the pros and cons of microservices?' },
+    { icon: Code2, title: 'Code logic', text: 'Write a Python function to reverse a linked list' },
+    { icon: PenLine, title: 'Creative writing', text: 'Write a short story about an autonomous AI agent' },
+    { icon: Compass, title: 'System architecture', text: 'Explain the technical difference between TCP and UDP' },
+    { icon: Lightbulb, title: 'Architecture review', text: 'What are the pros and cons of microservices?' },
   ],
   scientist: [
-    { icon: '⚛️', text: 'Explain quantum entanglement simply' },
-    { icon: '🧬', text: 'How does CRISPR gene editing work?' },
-    { icon: '🌡️', text: 'What causes the greenhouse effect?' },
-    { icon: '🔭', text: 'How are black holes detected?' },
+    { icon: Atom, title: 'Quantum physics', text: 'Explain quantum entanglement simply' },
+    { icon: Lightbulb, title: 'Biotechnology', text: 'How does CRISPR gene editing work?' },
+    { icon: Compass, title: 'Climate science', text: 'What causes the greenhouse effect?' },
+    { icon: Search, title: 'Astrophysics', text: 'How are black holes detected across galaxies?' },
   ],
   coder: [
-    { icon: '🐛', text: 'How do I debug a memory leak in Node.js?' },
-    { icon: '⚡', text: 'Explain Big O notation with examples' },
-    { icon: '🏗️', text: 'What is the difference between REST and GraphQL?' },
-    { icon: '🔒', text: 'How do I implement JWT authentication securely?' },
+    { icon: Terminal, title: 'Debugging', text: 'How do I debug a memory leak in Node.js?' },
+    { icon: Code2, title: 'Algorithms', text: 'Explain Big O notation with practical examples' },
+    { icon: Compass, title: 'API design', text: 'What is the architectural difference between REST and GraphQL?' },
+    { icon: Lightbulb, title: 'Security', text: 'How do I implement JWT authentication securely?' },
   ],
   writer: [
-    { icon: '📖', text: 'Help me write an opening paragraph for a thriller novel' },
-    { icon: '🎭', text: 'Write a dialogue between two strangers on a train' },
-    { icon: '📝', text: 'Give me 5 creative blog post ideas about productivity' },
-    { icon: '✨', text: 'Rewrite this sentence to be more engaging: "The meeting went well."' },
+    { icon: BookOpen, title: 'Novel hook', text: 'Help me write an opening paragraph for a thriller novel' },
+    { icon: PenLine, title: 'Screenplay', text: 'Write a dialogue between two strangers on a late-night train' },
+    { icon: Lightbulb, title: 'Content strategy', text: 'Give me 5 creative blog post ideas about engineering productivity' },
+    { icon: Sparkles, title: 'Editorial Polish', text: 'Rewrite this sentence to be more engaging: "The meeting went well."' },
   ],
   tutor: [
-    { icon: '📐', text: 'Explain calculus derivatives to a high school student' },
-    { icon: '🔤', text: 'What is the difference between affect and effect?' },
-    { icon: '🗺️', text: 'Teach me about the causes of World War 1' },
-    { icon: '🧮', text: 'How does compound interest work? Give me examples' },
+    { icon: GraduationCap, title: 'Mathematics', text: 'Explain calculus derivatives to a high school student' },
+    { icon: BookOpen, title: 'Linguistics', text: 'What is the grammatical difference between affect and effect?' },
+    { icon: Compass, title: 'World history', text: 'Teach me about the primary root causes of World War 1' },
+    { icon: Lightbulb, title: 'Economics', text: 'How does compound interest work? Give clear numerical examples' },
   ],
 };
 
@@ -71,7 +82,6 @@ export default function DashboardPage() {
   const [shareId, setShareId]             = useState<string | null>(null);
   const [isChatPublic, setIsChatPublic]   = useState(false);
   const [dailyUsed, setDailyUsed]         = useState(0);
-  // reactions: messageIndex -> 'up'|'down'
   const [reactions, setReactions]         = useState<Record<number, 'up' | 'down'>>({});
   const { theme, toggle: toggleTheme }    = useTheme();
   const isMobile                          = useIsMobile();
@@ -88,7 +98,7 @@ export default function DashboardPage() {
   const handlePersonaSelect = (id: string) => {
     setSelectedPersona(id);
     localStorage.setItem('nova_persona', id);
-    setBannerTrigger(t => t + 1); // show the banner
+    setBannerTrigger(t => t + 1);
   };
   const handleModelSelect = (id: string) => {
     setSelectedModel(id);
@@ -116,7 +126,6 @@ export default function DashboardPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  // Clear reactions when chat changes
   const loadChat = useCallback(async (chat: Chat) => {
     setActiveChat(chat);
     setReactions({});
@@ -167,9 +176,8 @@ export default function DashboardPage() {
       const imageMsg: Message = { role: 'assistant', content: prompt, imageUrl,    timestamp: new Date().toISOString() };
       setMessages(prev => [...prev, userMsg, imageMsg]);
 
-      // Tab notification
       if (document.hidden) {
-        document.title = `🎨 Image ready — NOVA AI`;
+        document.title = `Image generated — NOVA AI`;
       }
       return;
     }
@@ -183,7 +191,6 @@ export default function DashboardPage() {
       } catch { return; }
     }
 
-    // User bubble — show attached image if present
     const optimistic: Message = {
       role: 'user',
       content,
@@ -199,7 +206,6 @@ export default function DashboardPage() {
     const chatId = chat._id;
 
     try {
-      // If there's an attached image, prepend context for AI
       const aiContent = attachedImageUrl
         ? `${content ? content + '\n\n' : ''}[User shared an image: ${attachedImageUrl}]`
         : content;
@@ -219,22 +225,18 @@ export default function DashboardPage() {
           });
         },
         onDone: ({ title, isFirstMessage }) => {
-          // Mark streaming done (removes cursor)
           setMessages(prev => {
             const updated = [...prev];
             const last = updated[updated.length - 1];
             if (last?.role === 'assistant') updated[updated.length - 1] = { ...last, isStreaming: false };
             return updated;
           });
-          // Tab notification when page is hidden
           if (document.hidden) {
-            document.title = `💬 New reply — NOVA AI`;
+            document.title = `New reply — NOVA AI`;
           }
-          // Update sidebar title
           setChats(prev => prev.map(c =>
             c._id === chatId ? { ...c, title: title || c.title, updatedAt: new Date().toISOString() } : c
           ));
-          // Auto-generate AI title after first exchange
           if (isFirstMessage) {
             chatService.generateTitle(chatId).then(aiTitle => {
               if (aiTitle) setChats(prev => prev.map(c => c._id === chatId ? { ...c, title: aiTitle } : c));
@@ -254,7 +256,7 @@ export default function DashboardPage() {
             setMessages(prev => prev.filter(m => !(m.role === 'assistant' && m.content === '')));
             return;
           }
-          setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Connection interrupted. Please try again.', timestamp: new Date().toISOString() }]);
+          setMessages(prev => [...prev, { role: 'assistant', content: 'Connection interrupted. Please try again.', timestamp: new Date().toISOString() }]);
         },
       }, selectedModel, selectedPersona);
     } catch (err: any) {
@@ -262,7 +264,6 @@ export default function DashboardPage() {
         setUpgradeOpen(true);
         setMessages(prev => prev.filter(m => !(m.role === 'assistant' && m.content === '')));
       } else {
-        // Fallback non-streaming
         try {
           const { message } = await chatService.sendMessage(chatId, content, selectedModel, selectedPersona);
           setMessages(prev => {
@@ -270,7 +271,7 @@ export default function DashboardPage() {
             return [...updated, { ...message, isStreaming: false }];
           });
         } catch {
-          setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ AI is temporarily unavailable. Please try again.', isStreaming: false, timestamp: new Date().toISOString() }]);
+          setMessages(prev => [...prev, { role: 'assistant', content: 'AI service temporarily unavailable. Please try again.', isStreaming: false, timestamp: new Date().toISOString() }]);
         }
       }
     } finally {
@@ -279,11 +280,9 @@ export default function DashboardPage() {
     }
   }, [activeChat, isSending, selectedModel, selectedPersona]);
 
-  // ── Regenerate last AI response ─────────────────────────────────────────────
   const regenerate = useCallback(async () => {
     const lastUser = [...messages].reverse().find(m => m.role === 'user');
     if (!lastUser || !activeChat) return;
-    // Remove last AI message and re-send last user message
     setMessages(prev => {
       const idx = [...prev].reverse().findIndex(m => m.role === 'assistant');
       if (idx === -1) return prev;
@@ -294,29 +293,22 @@ export default function DashboardPage() {
     await sendMessage(lastUser.content);
   }, [messages, activeChat, sendMessage]);
 
-  // ── Edit a user message ─────────────────────────────────────────────────────
   const editMessage = useCallback(async (messageIndex: number, newContent: string) => {
     if (!activeChat || isSending) return;
-    // Keep messages up to (not including) the edited one, then re-send
     setMessages(prev => prev.slice(0, messageIndex));
     await sendMessage(newContent);
   }, [activeChat, isSending, sendMessage]);
 
-  // ── Tab title notification — reset on focus ─────────────────────────────────
   useEffect(() => {
     const handleFocus = () => { document.title = 'NOVA AI — Chat Smarter. Think Deeper.'; };
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
-  // ── Keyboard shortcuts ──────────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Alt+N = new chat (Ctrl+N is owned by Chrome, can't be overridden)
       if (e.altKey && e.key === 'n') { e.preventDefault(); createNewChat(); }
-      // Ctrl+/ = shortcuts panel
       if ((e.ctrlKey || e.metaKey) && e.key === '/') { e.preventDefault(); setShortcutsOpen(s => !s); }
-      // Escape = close whatever modal is open
       if (e.key === 'Escape') {
         setShortcutsOpen(false);
         setExportOpen(false);
@@ -329,13 +321,14 @@ export default function DashboardPage() {
     return () => document.removeEventListener('keydown', handler, { capture: true });
   }, [createNewChat]);
 
-  // ── Loading state ───────────────────────────────────────────────────────────
   if (isLoading) {
     return (
       <div style={{ height: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
         <div style={{ textAlign: 'center' }}>
-          <div className="nova-logo-icon" style={{ width: 48, height: 48, fontSize: 22, borderRadius: 14, margin: '0 auto 16px', animation: 'pulseGlow 2s ease-in-out infinite' }}>N</div>
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>Loading NOVA AI…</p>
+          <div style={{ width: 44, height: 44, borderRadius: 12, margin: '0 auto 16px', background: 'var(--surface2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
+            <Sparkles size={22} />
+          </div>
+          <p style={{ color: 'var(--muted)', fontSize: 13 }}>Initializing NOVA AI…</p>
         </div>
       </div>
     );
@@ -344,10 +337,10 @@ export default function DashboardPage() {
   const activeSuggestions = SUGGESTIONS[selectedPersona] || SUGGESTIONS.default;
   const activePersona     = PERSONAS.find(p => p.id === selectedPersona);
   const lastAIIndex       = messages.reduce((acc, m, i) => m.role === 'assistant' ? i : acc, -1);
+  const PersonaIcon       = activePersona?.icon || Sparkles;
 
   return (
     <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden', background: 'var(--bg)' }}>
-
       <PersonaBanner persona={activePersona} trigger={bannerTrigger} />
       <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} messagesUsed={dailyUsed} />
       <StatsPanel   open={statsOpen}   onClose={() => setStatsOpen(false)}   username={user?.username} />
@@ -366,7 +359,6 @@ export default function DashboardPage() {
       )}
 
       {/* ── LEFT SIDEBAR ────────────────────────────────────────────────────── */}
-      {/* On desktop: static. On mobile: hidden until hamburger is tapped (handled inside Sidebar) */}
       {!isMobile && (
         <Sidebar
           chats={chats}
@@ -378,7 +370,6 @@ export default function DashboardPage() {
           isLoading={chatsLoading}
         />
       )}
-      {/* Mobile drawer version */}
       {isMobile && (
         <Sidebar
           chats={chats}
@@ -399,108 +390,140 @@ export default function DashboardPage() {
         {/* Top bar */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 16px', height: 52, flexShrink: 0,
-          borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'var(--bg)',
+          padding: '0 18px', height: 54, flexShrink: 0,
+          borderBottom: '1px solid var(--border)', background: 'var(--bg)',
         }}>
-          {/* Hamburger — mobile only */}
-          <button
-            className="mobile-only"
-            onClick={() => setSidebarOpen(s => !s)}
-            aria-label="Open menu"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted2)', padding: '6px 8px', borderRadius: 8, marginRight: 4 }}
-          >
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <line x1="2" y1="4" x2="16" y2="4"/><line x1="2" y1="9" x2="16" y2="9"/><line x1="2" y1="14" x2="16" y2="14"/>
-            </svg>
-          </button>
+          {/* Left: Mobile hamburger + Active chat title */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            <button
+              className="mobile-only"
+              onClick={() => setSidebarOpen(s => !s)}
+              aria-label="Open menu"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: '6px', borderRadius: 8 }}
+            >
+              <Menu size={18} />
+            </button>
 
-          <span className="topbar-title" style={{ fontSize: 14, fontWeight: 600, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 300 }}>
-            {activeChat?.title || 'New Chat'}
-          </span>
+            <span className="topbar-title" style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 320 }}>
+              {activeChat?.title || 'New Conversation'}
+            </span>
+          </div>
 
+          {/* Right: Actions */}
           <div className="topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span className="desktop-only"><PersonaSelector selectedPersona={selectedPersona} onSelect={handlePersonaSelect} /></span>
             <span className="desktop-only"><ModelSelector   selectedModel={selectedModel}     onSelect={handleModelSelect} /></span>
 
             {/* Stats */}
-            <button onClick={() => setStatsOpen(true)} title="Your stats" className="hide-xs"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '6px 10px', color: '#71717a', cursor: 'pointer', fontSize: 14 }}>
-              📊
+            <button onClick={() => setStatsOpen(true)} title="Activity Statistics" className="hide-xs"
+              style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 9px', color: 'var(--muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <BarChart2 size={15} />
             </button>
 
-            {/* Shortcuts hint */}
-            <button onClick={() => setShortcutsOpen(true)} title="Keyboard shortcuts (Ctrl+/)" className="hide-xs"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '6px 10px', color: '#71717a', cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>
-              ⌨️
+            {/* Shortcuts */}
+            <button onClick={() => setShortcutsOpen(true)} title="Shortcuts (Ctrl+/)" className="hide-xs"
+              style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 9px', color: 'var(--muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <Keyboard size={15} />
             </button>
 
             {/* Share */}
             {activeChat && messages.length > 0 && (
-              <button onClick={() => setShareOpen(true)} title="Share conversation"
-                style={{ display: 'flex', alignItems: 'center', gap: 5, background: isChatPublic ? 'rgba(212,98,26,0.18)' : 'rgba(254,243,226,0.06)', border: `1px solid ${isChatPublic ? 'rgba(212,98,26,0.4)' : 'rgba(254,243,226,0.1)'}`, borderRadius: 8, padding: '6px 10px', color: isChatPublic ? '#F4AE52' : 'var(--muted)', cursor: 'pointer', fontSize: 12, fontWeight: 500, transition: 'all 0.15s' }}>
-                🔗 {isChatPublic ? 'Shared' : 'Share'}
+              <button onClick={() => setShareOpen(true)} title="Share link"
+                style={{ display: 'flex', alignItems: 'center', gap: 5, background: isChatPublic ? 'rgba(229,169,90,0.15)' : 'var(--surface)', border: `1px solid ${isChatPublic ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 8, padding: '6px 10px', color: isChatPublic ? 'var(--accent)' : 'var(--text)', cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>
+                <Share2 size={13} />
+                <span>{isChatPublic ? 'Shared' : 'Share'}</span>
               </button>
             )}
 
             {/* Export */}
             {activeChat && messages.length > 0 && (
-              <button onClick={() => setExportOpen(true)} title="Export"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '6px 10px', color: '#71717a', cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>
-                ⬇ Export
+              <button onClick={() => setExportOpen(true)} title="Export transcript"
+                style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', color: 'var(--muted)', cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>
+                <Download size={13} />
+                <span>Export</span>
               </button>
             )}
           </div>
         </div>
 
         {/* Messages */}
-        <div className="messages-area scrollbar-thin" style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 8px' }}>
-          <div style={{ maxWidth: 760, margin: '0 auto' }}>
+        <div className="messages-area scrollbar-thin" style={{ flex: 1, overflowY: 'auto', padding: '24px 20px 8px' }}>
+          <div style={{ maxWidth: 780, margin: '0 auto' }}>
 
-            {/* Empty state */}
+            {/* Empty state — Modern Claude / Gemini / ChatGPT style */}
             {messages.length === 0 && (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                style={{ textAlign: 'center', paddingTop: 56 }}>
+              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                style={{ textAlign: 'center', paddingTop: 64, paddingBottom: 32 }}>
+
+                {/* Hero icon */}
                 <div style={{
-                  width: 56, height: 56, fontSize: 28, borderRadius: 18, margin: '0 auto 16px',
-                  background: 'rgba(212,98,26,0.18)', border: '1px solid rgba(212,98,26,0.35)',
+                  width: 52, height: 52, borderRadius: 16, margin: '0 auto 20px',
+                  background: 'var(--surface2)', border: '1px solid var(--border)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
                 }}>
-                  {activePersona?.emoji || '🤖'}
+                  <PersonaIcon size={24} style={{ color: activePersona?.color || 'var(--accent)' }} />
                 </div>
-                <h2 style={{ color: 'var(--text)', fontSize: 22, fontWeight: 700, marginBottom: 8 }}>
-                  {selectedPersona === 'default' ? 'How can I help?' : `${activePersona?.name} is ready`}
-                </h2>
-                <p style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 32 }}>
-                  {activePersona?.tagline || 'Ask me anything'} · <kbd style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px', fontSize: 11, color: 'var(--text2)' }}>Alt+N</kbd> new chat
+
+                <h1 style={{ color: 'var(--text)', fontSize: 'clamp(24px, 3.5vw, 32px)', fontWeight: 600, letterSpacing: '-0.02em', marginBottom: 8 }}>
+                  {selectedPersona === 'default' ? 'Where would you like to begin?' : `${activePersona?.name} is ready`}
+                </h1>
+                <p style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 36, maxWidth: 440, margin: '0 auto 36px' }}>
+                  {activePersona?.tagline || 'Ask a question, analyze code, or create imagery with natural precision.'}
                 </p>
-                <div className="suggestion-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, maxWidth: 520, margin: '0 auto', textAlign: 'left' }}>
-                  {activeSuggestions.map(s => (
-                    <button key={s.text} onClick={() => sendMessage(s.text)}
-                      style={{
-                        background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
-                        borderRadius: 12, padding: '12px 14px', cursor: 'pointer', textAlign: 'left',
-                        transition: 'all 0.15s', display: 'flex', alignItems: 'flex-start', gap: 10,
-                      }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(124,58,237,0.08)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(124,58,237,0.25)'; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.03)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.07)'; }}
-                    >
-                      <span style={{ fontSize: 18, flexShrink: 0 }}>{s.icon}</span>
-                      <span style={{ fontSize: 13, color: '#a1a1aa', lineHeight: 1.4 }}>{s.text}</span>
-                    </button>
-                  ))}
+
+                {/* Suggestion cards grid */}
+                <div className="suggestion-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, maxWidth: 640, margin: '0 auto', textAlign: 'left' }}>
+                  {activeSuggestions.map(s => {
+                    const SuggestionIcon = s.icon;
+                    return (
+                      <button key={s.text} onClick={() => sendMessage(s.text)}
+                        style={{
+                          background: 'var(--surface)', border: '1px solid var(--border)',
+                          borderRadius: 14, padding: '14px 16px', cursor: 'pointer', textAlign: 'left',
+                          transition: 'all 0.15s ease', display: 'flex', flexDirection: 'column', gap: 6,
+                        }}
+                        onMouseEnter={e => {
+                          (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)';
+                          (e.currentTarget as HTMLButtonElement).style.background = 'var(--surface2)';
+                        }}
+                        onMouseLeave={e => {
+                          (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)';
+                          (e.currentTarget as HTMLButtonElement).style.background = 'var(--surface)';
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <SuggestionIcon size={15} style={{ color: 'var(--accent)' }} />
+                          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>{s.title}</span>
+                        </div>
+                        <span style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.45 }}>{s.text}</span>
+                      </button>
+                    );
+                  })}
 
                   {/* /imagine chip */}
-                  <button onClick={() => sendMessage('/imagine a futuristic city at sunset, digital art')}
+                  <button onClick={() => sendMessage('/imagine a minimalist architectural house in misty mountains, architectural photography')}
                     style={{
-                      background: 'rgba(236,72,153,0.06)', border: '1px solid rgba(236,72,153,0.2)',
-                      borderRadius: 12, padding: '12px 14px', cursor: 'pointer', textAlign: 'left',
-                      transition: 'all 0.15s', display: 'flex', alignItems: 'flex-start', gap: 10,
+                      background: 'var(--surface)', border: '1px solid var(--border)',
+                      borderRadius: 14, padding: '14px 16px', cursor: 'pointer', textAlign: 'left',
+                      transition: 'all 0.15s ease', display: 'flex', flexDirection: 'column', gap: 6,
                     }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(236,72,153,0.12)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(236,72,153,0.35)'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(236,72,153,0.06)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(236,72,153,0.2)'; }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)';
+                      (e.currentTarget as HTMLButtonElement).style.background = 'var(--surface2)';
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)';
+                      (e.currentTarget as HTMLButtonElement).style.background = 'var(--surface)';
+                    }}
                   >
-                    <span style={{ fontSize: 18, flexShrink: 0 }}>🎨</span>
-                    <span style={{ fontSize: 13, color: '#a1a1aa', lineHeight: 1.4 }}><code style={{ color: '#f9a8d4', fontSize: 12 }}>/imagine</code> Generate an image with AI</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Wand2 size={15} style={{ color: 'var(--accent)' }} />
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>Image Generation</span>
+                    </div>
+                    <span style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.45 }}>
+                      Type <code style={{ color: 'var(--accent)', background: 'var(--surface2)', padding: '1px 5px', borderRadius: 4, fontSize: 12 }}>/imagine</code> to generate cinematic artwork
+                    </span>
                   </button>
                 </div>
               </motion.div>
@@ -529,12 +552,12 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Input */}
-        <div className="input-bar" style={{ padding: '8px 20px 16px', flexShrink: 0 }}>
-          <div style={{ maxWidth: 760, margin: '0 auto' }}>
-            <MessageInput onSend={(content, imgUrl) => sendMessage(content, imgUrl)} isSending={isSending} placeholder={`Message ${activePersona?.name || 'NOVA AI'}… or /imagine a prompt`} />
-            <p style={{ textAlign: 'center', marginTop: 8, fontSize: 11, color: '#3f3f46' }}>
-              NOVA AI can make mistakes. Verify important info. Try <code style={{ color: '#f9a8d4', background: 'rgba(236,72,153,0.1)', padding: '0 4px', borderRadius: 4, fontSize: 11 }}>/imagine a sunset</code> to generate images.
+        {/* Floating Input area */}
+        <div className="input-bar" style={{ padding: '4px 20px 16px', flexShrink: 0 }}>
+          <div style={{ maxWidth: 780, margin: '0 auto' }}>
+            <MessageInput onSend={(content, imgUrl) => sendMessage(content, imgUrl)} isSending={isSending} placeholder={`Message ${activePersona?.name || 'NOVA AI'}…`} />
+            <p style={{ textAlign: 'center', marginTop: 6, fontSize: 11, color: 'var(--muted)' }}>
+              NOVA AI can make mistakes. Verify critical facts and code.
             </p>
           </div>
         </div>

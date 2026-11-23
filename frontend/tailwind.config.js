@@ -9,20 +9,20 @@ module.exports = {
     extend: {
       colors: {
         space: {
-          950: '#2A1A0E',
-          900: '#1e1208',
-          800: '#3d2512',
-          700: '#4f3018',
+          950: '#0F0F10',
+          900: '#161618',
+          800: '#1C1C1F',
+          700: '#242428',
         },
         cosmic: {
-          cream:  '#FEF3E2',
-          amber:  '#F4AE52',
-          orange: '#D4621A',
-          brown:  '#2A1A0E',
-          gold:   '#F4AE52',
-          warm:   '#FEF3E2',
-          rust:   '#D4621A',
-          dark:   '#2A1A0E',
+          cream:  '#F4F4F5',
+          amber:  '#F5BE75',
+          orange: '#E5A95A',
+          brown:  '#0F0F10',
+          gold:   '#F5BE75',
+          warm:   '#F4F4F5',
+          rust:   '#E5A95A',
+          dark:   '#0F0F10',
         },
       },
       fontFamily: {

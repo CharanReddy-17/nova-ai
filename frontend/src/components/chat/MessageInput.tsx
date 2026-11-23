@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { Paperclip, X, Image as ImageIcon } from 'lucide-react';
+import { Paperclip, X, Image as ImageIcon, ArrowUp, Loader2, Sparkles } from 'lucide-react';
 import api from '@/services/api';
 
 const VoiceInput = dynamic(() => import('@/components/ui/VoiceInput'), { ssr: false });
@@ -23,6 +23,7 @@ interface MessageInputProps {
 export default function MessageInput({ onSend, isSending, placeholder = 'Message NOVA AI…' }: MessageInputProps) {
   const [value,    setValue]    = useState('');
   const [attached, setAttached] = useState<AttachedFile | null>(null);
+  const [isFocused, setIsFocused] = useState(false);
   const textareaRef  = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const MAX_HEIGHT = 200;
@@ -44,7 +45,7 @@ export default function MessageInput({ onSend, isSending, placeholder = 'Message
   const handleFilePick = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!e.target) return;
-    (e.target as HTMLInputElement).value = '';          // allow re-pick same file
+    (e.target as HTMLInputElement).value = '';
     if (!file) return;
 
     const preview = URL.createObjectURL(file);
@@ -87,8 +88,8 @@ export default function MessageInput({ onSend, isSending, placeholder = 'Message
   const submit = useCallback(() => {
     const trimmed = value.trim();
     if ((!trimmed && !attached?.url) || isSending) return;
-    if (attached?.uploading) return;                   // wait for upload
-    onSend(trimmed || '📎 Image attached', attached?.url);
+    if (attached?.uploading) return;
+    onSend(trimmed || 'Image attached', attached?.url);
     setValue('');
     setAttached(null);
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
@@ -110,7 +111,7 @@ export default function MessageInput({ onSend, isSending, placeholder = 'Message
 
   return (
     <div
-      style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.06)', background: '#09090b' }}
+      style={{ padding: '8px 0', background: 'transparent' }}
       onDrop={handleDrop}
       onDragOver={e => e.preventDefault()}
     >
@@ -126,9 +127,9 @@ export default function MessageInput({ onSend, isSending, placeholder = 'Message
       {/* ── Attached image preview ───────────────────────────────────────────── */}
       {attached && (
         <div style={{
-          marginBottom: 10, padding: '10px 12px',
-          background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.2)',
-          borderRadius: 12, display: 'flex', alignItems: 'center', gap: 10,
+          marginBottom: 10, padding: '10px 14px',
+          background: 'var(--surface)', border: '1px solid var(--border)',
+          borderRadius: 14, display: 'flex', alignItems: 'center', gap: 12,
         }}>
           {/* Thumbnail */}
           <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -136,49 +137,53 @@ export default function MessageInput({ onSend, isSending, placeholder = 'Message
             <img
               src={attached.preview}
               alt="attachment"
-              style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 8, display: 'block' }}
+              style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8, display: 'block', border: '1px solid var(--border)' }}
             />
             {attached.uploading && (
               <div style={{
-                position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)',
+                position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.65)',
                 borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <div style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                <Loader2 size={16} className="animate-spin text-amber-400" />
               </div>
             )}
           </div>
 
           {/* Info */}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#fafafa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {attached.file.name}
             </p>
-            <p style={{ margin: 0, fontSize: 11, color: attached.error ? '#ef4444' : attached.uploading ? '#a855f7' : '#10b981' }}>
+            <p style={{ margin: 0, fontSize: 11, color: attached.error ? '#ef4444' : attached.uploading ? 'var(--accent)' : '#10b981' }}>
               {attached.error
-                ? `❌ ${attached.error}`
+                ? attached.error
                 : attached.uploading
-                  ? 'Uploading…'
-                  : '✓ Ready to send'}
+                  ? 'Uploading image…'
+                  : 'Ready to send'}
             </p>
           </div>
 
           {/* Remove */}
           <button
             onClick={() => { URL.revokeObjectURL(attached.preview); setAttached(null); }}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#52525b', padding: 4, flexShrink: 0 }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: 6, borderRadius: 6, display: 'flex' }}
+            title="Remove attachment"
           >
-            <X size={15} />
+            <X size={16} />
           </button>
         </div>
       )}
 
-      {/* ── Input box ────────────────────────────────────────────────────────── */}
+      {/* ── Input container ──────────────────────────────────────────────────── */}
       <div
         id="message-input-box"
         style={{
-          background: '#18181b', border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 16, padding: '12px 16px',
-          transition: 'border-color 0.2s, box-shadow 0.2s',
+          background: 'var(--surface)',
+          border: `1px solid ${isFocused ? 'var(--accent)' : 'var(--border)'}`,
+          boxShadow: isFocused ? '0 0 0 2px rgba(229,169,90,0.18)' : '0 2px 8px rgba(0,0,0,0.2)',
+          borderRadius: 20,
+          padding: '12px 16px 10px',
+          transition: 'all 0.2s ease',
         }}
       >
         <textarea
@@ -187,85 +192,86 @@ export default function MessageInput({ onSend, isSending, placeholder = 'Message
           onChange={e => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
-          placeholder={attached ? 'Add a message (optional)…' : placeholder}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          placeholder={attached ? 'Add a message or instruction…' : placeholder}
           disabled={isSending}
           rows={1}
           style={{
             width: '100%', background: 'transparent', border: 'none', outline: 'none',
-            resize: 'none', color: '#fafafa', fontSize: 14,
-            fontFamily: 'var(--font-inter), Inter, sans-serif',
-            lineHeight: 1.6, maxHeight: MAX_HEIGHT,
+            resize: 'none', color: 'var(--text)', fontSize: 14,
+            fontFamily: 'inherit', lineHeight: 1.6, maxHeight: MAX_HEIGHT,
             overflowY: value.length > 200 ? 'auto' : 'hidden',
-          }}
-          onFocus={() => {
-            const box = document.getElementById('message-input-box');
-            if (box) { box.style.borderColor = '#7c3aed'; box.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.12)'; }
-          }}
-          onBlur={() => {
-            const box = document.getElementById('message-input-box');
-            if (box) { box.style.borderColor = 'rgba(255,255,255,0.1)'; box.style.boxShadow = 'none'; }
           }}
         />
 
-        {/* Bottom row: attach · info · voice · send */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {/* 📎 Attach image */}
+        {/* Bottom row: attach · model info · voice · send */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, paddingTop: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Attach image button */}
             <button
+              type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isSending || !!attached}
               title="Attach image (JPG, PNG, WebP)"
               style={{
-                background: 'none', border: 'none', cursor: isSending || !!attached ? 'not-allowed' : 'pointer',
-                padding: '4px 6px', borderRadius: 7, color: attached ? '#7c3aed' : '#52525b',
-                display: 'flex', alignItems: 'center', transition: 'color 0.15s',
+                background: attached ? 'rgba(229,169,90,0.15)' : 'transparent',
+                border: 'none',
+                cursor: isSending || !!attached ? 'not-allowed' : 'pointer',
+                padding: '6px', borderRadius: 8,
+                color: attached ? 'var(--accent)' : 'var(--muted)',
+                display: 'flex', alignItems: 'center', transition: 'all 0.15s',
               }}
-              onMouseEnter={e => { if (!isSending && !attached) (e.currentTarget as HTMLButtonElement).style.color = '#a855f7'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = attached ? '#7c3aed' : '#52525b'; }}
+              onMouseEnter={e => { if (!isSending && !attached) (e.currentTarget as HTMLButtonElement).style.color = 'var(--text)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = attached ? 'var(--accent)' : 'var(--muted)'; }}
             >
-              {attached ? <ImageIcon size={16} /> : <Paperclip size={16} />}
+              {attached ? <ImageIcon size={18} /> : <Paperclip size={18} />}
             </button>
 
-            <span style={{ fontSize: 11, color: '#3f3f46' }}>
-              NOVA AI · Groq{charCount > 500 ? ` · ${charCount}/4000` : ''}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--muted)', fontWeight: 500 }}>
+              <Sparkles size={12} style={{ color: 'var(--accent)' }} />
+              <span>NOVA AI</span>
+              {charCount > 500 && <span>· {charCount}/4000</span>}
+            </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <VoiceInput onTranscript={handleVoiceTranscript} disabled={isSending} />
 
-            {/* Send */}
+            {/* Send button */}
             <button
               onClick={submit}
               disabled={!canSend}
               title="Send message (Enter)"
               style={{
-                width: 36, height: 36,
-                background: !canSend ? '#27272a' : 'linear-gradient(135deg,#7c3aed,#a855f7)',
-                border: 'none', borderRadius: 10,
+                width: 34, height: 34,
+                background: !canSend ? 'var(--surface2)' : 'var(--accent)',
+                border: 'none', borderRadius: 12,
                 cursor: !canSend ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.2s',
-                color: !canSend ? '#52525b' : '#fff',
-                fontSize: 18,
-                boxShadow: !canSend ? 'none' : '0 4px 14px rgba(124,58,237,0.4)',
+                transition: 'all 0.2s ease',
+                color: !canSend ? 'var(--muted)' : '#0F0F10',
+                boxShadow: !canSend ? 'none' : '0 2px 10px rgba(229,169,90,0.3)',
               }}
             >
-              {isSending
-                ? <div style={{ width: 14, height: 14, border: '2px solid #52525b', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-                : '↑'}
+              {isSending ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <ArrowUp size={18} strokeWidth={2.5} />
+              )}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Hint */}
-      <p style={{ textAlign: 'center', fontSize: 10, color: '#3f3f46', marginTop: 6 }}>
-        <span style={{ color: 'rgba(124,58,237,0.6)' }}>Enter</span> send ·{' '}
-        <span style={{ color: 'rgba(124,58,237,0.6)' }}>Shift+Enter</span> newline ·{' '}
-        <span style={{ color: 'rgba(124,58,237,0.6)' }}>📎</span> attach image ·{' '}
-        <span style={{ color: 'rgba(124,58,237,0.6)' }}>🎤</span> voice
-      </p>
+      {/* Helpful shortcuts info */}
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, fontSize: 11, color: 'var(--muted)', marginTop: 8 }}>
+        <span><strong style={{ color: 'var(--text2)', fontWeight: 600 }}>Enter</strong> to send</span>
+        <span>•</span>
+        <span><strong style={{ color: 'var(--text2)', fontWeight: 600 }}>Shift+Enter</strong> newline</span>
+        <span>•</span>
+        <span><strong style={{ color: 'var(--accent)', fontWeight: 600 }}>/imagine</strong> for image</span>
+      </div>
     </div>
   );
 }
