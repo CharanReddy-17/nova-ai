@@ -57,7 +57,7 @@ export default function LoginPage() {
         if (p.y > canvas.height) p.y = 0;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(167,139,250,${p.o})`;
+        ctx.fillStyle = `rgba(244,174,82,${p.o})`;
         ctx.fill();
       });
       animId = requestAnimationFrame(draw);
@@ -106,16 +106,16 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100dvh', background: '#09090b', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100dvh', background: '#2A1A0E', overflow: 'hidden' }}>
 
       {/* ── Left panel (decorative) ─────────────────────────────────────── */}
-      <div style={{ flex: 1, position: 'relative', display: 'none', background: 'linear-gradient(160deg, #13001f 0%, #09090b 60%)' }}
+      <div style={{ flex: 1, position: 'relative', display: 'none', background: 'linear-gradient(160deg, #3d2512 0%, #2A1A0E 60%)' }}
         className="md-show">
         <style>{`.md-show { display: none; } @media(min-width:768px){ .md-show { display: block !important; } }`}</style>
         <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
         {/* Glow orbs */}
-        <div style={{ position: 'absolute', top: '20%', left: '20%', width: 300, height: 300, background: 'radial-gradient(circle, rgba(124,58,237,0.25) 0%, transparent 70%)', borderRadius: '50%' }} />
-        <div style={{ position: 'absolute', bottom: '20%', right: '20%', width: 200, height: 200, background: 'radial-gradient(circle, rgba(236,72,153,0.2) 0%, transparent 70%)', borderRadius: '50%' }} />
+        <div style={{ position: 'absolute', top: '20%', left: '20%', width: 300, height: 300, background: 'radial-gradient(circle, rgba(212,98,26,0.25) 0%, transparent 70%)', borderRadius: '50%' }} />
+        <div style={{ position: 'absolute', bottom: '20%', right: '20%', width: 200, height: 200, background: 'radial-gradient(circle, rgba(244,174,82,0.2) 0%, transparent 70%)', borderRadius: '50%' }} />
 
         <div style={{ position: 'relative', zIndex: 2, padding: '40px', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           {/* Logo */}
@@ -164,13 +164,13 @@ export default function LoginPage() {
         </div>
 
         {/* Mode switcher */}
-        <div style={{ display: 'flex', background: '#18181b', borderRadius: 10, padding: 4, marginBottom: 28, border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ display: 'flex', background: '#3d2512', borderRadius: 10, padding: 4, marginBottom: 28, border: '1px solid rgba(254,243,226,0.1)' }}>
           {(['login', 'register'] as Mode[]).map(m => (
             <button key={m} onClick={() => switchMode(m)}
               style={{
                 flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none',
-                background: mode === m ? '#27272a' : 'transparent',
-                color: mode === m ? '#fafafa' : '#71717a',
+                background: mode === m ? '#4f3018' : 'transparent',
+                color: mode === m ? '#FEF3E2' : '#c9a06a',
                 fontWeight: mode === m ? 600 : 400,
                 fontSize: 14, cursor: 'pointer', transition: 'all 0.2s',
               }}>
@@ -215,7 +215,7 @@ export default function LoginPage() {
 
           {mode === 'login' && (
             <div style={{ textAlign: 'right', marginTop: -8 }}>
-              <a href="#" style={{ color: '#a855f7', fontSize: 13 }}>Forgot password?</a>
+              <a href="#" style={{ color: '#F4AE52', fontSize: 13 }}>Forgot password?</a>
             </div>
           )}
 
@@ -231,7 +231,7 @@ export default function LoginPage() {
         <p style={{ textAlign: 'center', color: '#71717a', fontSize: 13, marginTop: 24 }}>
           {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
           <button onClick={() => switchMode(mode === 'login' ? 'register' : 'login')}
-            style={{ background: 'none', border: 'none', color: '#a855f7', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
+            style={{ background: 'none', border: 'none', color: '#F4AE52', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
             {mode === 'login' ? 'Sign up free' : 'Sign in'}
           </button>
         </p>
@@ -251,13 +251,13 @@ function InputField({ icon, type, placeholder, value, onChange, suffix }: {
 }) {
   const [focused, setFocused] = useState(false);
   return (
-    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', background: '#18181b', border: `1px solid ${focused ? '#7c3aed' : 'rgba(255,255,255,0.08)'}`, borderRadius: 10, transition: 'border-color 0.2s, box-shadow 0.2s', boxShadow: focused ? '0 0 0 3px rgba(124,58,237,0.12)' : 'none' }}>
+    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', background: '#3d2512', border: `1px solid ${focused ? '#D4621A' : 'rgba(254,243,226,0.12)'}`, borderRadius: 10, transition: 'border-color 0.2s, box-shadow 0.2s', boxShadow: focused ? '0 0 0 3px rgba(212,98,26,0.2)' : 'none' }}>
       <span style={{ padding: '0 0 0 14px', fontSize: 15, flexShrink: 0 }}>{icon}</span>
       <input type={type} placeholder={placeholder} value={value}
         onChange={e => onChange(e.target.value)}
         onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
         required
-        style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#fafafa', fontSize: 14, padding: '13px 14px', fontFamily: 'Inter, sans-serif' }} />
+        style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#FEF3E2', fontSize: 14, padding: '13px 14px', fontFamily: 'Inter, sans-serif' }} />
       {suffix && <div style={{ paddingRight: 12, flexShrink: 0 }}>{suffix}</div>}
     </div>
   );

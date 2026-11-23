@@ -155,8 +155,9 @@ export default function DashboardPage() {
     if (!content.trim() && !attachedImageUrl) return;
     if (isSending) return;
 
-    // ── /imagine command ───────────────────────────────────────────────────────
-    const imagineMatch = content.match(/^\/imagine\s+(.+)/i);
+    // ── /imagine command & natural image prompts ──────────────────────────────
+    const imagineMatch = content.match(/^\/(?:imagine|image|draw|img)\s+(.+)/i)
+      || content.match(/^(?:please\s+)?(?:generate|create|draw)\s+(?:an?\s+)?image\s+(?:of|showing|depicting)\s+(.+)/i);
     if (imagineMatch) {
       const prompt = imagineMatch[1].trim();
       const encoded = encodeURIComponent(prompt);
@@ -331,10 +332,10 @@ export default function DashboardPage() {
   // ── Loading state ───────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div style={{ height: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#09090b' }}>
+      <div style={{ height: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
         <div style={{ textAlign: 'center' }}>
           <div className="nova-logo-icon" style={{ width: 48, height: 48, fontSize: 22, borderRadius: 14, margin: '0 auto 16px', animation: 'pulseGlow 2s ease-in-out infinite' }}>N</div>
-          <p style={{ color: '#52525b', fontSize: 13 }}>Loading NOVA AI…</p>
+          <p style={{ color: 'var(--muted)', fontSize: 13 }}>Loading NOVA AI…</p>
         </div>
       </div>
     );
@@ -345,7 +346,7 @@ export default function DashboardPage() {
   const lastAIIndex       = messages.reduce((acc, m, i) => m.role === 'assistant' ? i : acc, -1);
 
   return (
-    <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden', background: '#09090b' }}>
+    <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden', background: 'var(--bg)' }}>
 
       <PersonaBanner persona={activePersona} trigger={bannerTrigger} />
       <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} messagesUsed={dailyUsed} />
@@ -436,7 +437,7 @@ export default function DashboardPage() {
             {/* Share */}
             {activeChat && messages.length > 0 && (
               <button onClick={() => setShareOpen(true)} title="Share conversation"
-                style={{ display: 'flex', alignItems: 'center', gap: 5, background: isChatPublic ? 'rgba(124,58,237,0.15)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isChatPublic ? 'rgba(124,58,237,0.35)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 8, padding: '6px 10px', color: isChatPublic ? '#a855f7' : '#71717a', cursor: 'pointer', fontSize: 12, fontWeight: 500, transition: 'all 0.15s' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 5, background: isChatPublic ? 'rgba(212,98,26,0.18)' : 'rgba(254,243,226,0.06)', border: `1px solid ${isChatPublic ? 'rgba(212,98,26,0.4)' : 'rgba(254,243,226,0.1)'}`, borderRadius: 8, padding: '6px 10px', color: isChatPublic ? '#F4AE52' : 'var(--muted)', cursor: 'pointer', fontSize: 12, fontWeight: 500, transition: 'all 0.15s' }}>
                 🔗 {isChatPublic ? 'Shared' : 'Share'}
               </button>
             )}
@@ -461,16 +462,16 @@ export default function DashboardPage() {
                 style={{ textAlign: 'center', paddingTop: 56 }}>
                 <div style={{
                   width: 56, height: 56, fontSize: 28, borderRadius: 18, margin: '0 auto 16px',
-                  background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(124,58,237,0.25)',
+                  background: 'rgba(212,98,26,0.18)', border: '1px solid rgba(212,98,26,0.35)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   {activePersona?.emoji || '🤖'}
                 </div>
-                <h2 style={{ color: '#fafafa', fontSize: 22, fontWeight: 700, marginBottom: 8 }}>
+                <h2 style={{ color: 'var(--text)', fontSize: 22, fontWeight: 700, marginBottom: 8 }}>
                   {selectedPersona === 'default' ? 'How can I help?' : `${activePersona?.name} is ready`}
                 </h2>
-                <p style={{ color: '#52525b', fontSize: 14, marginBottom: 32 }}>
-                  {activePersona?.tagline || 'Ask me anything'} · <kbd style={{ background: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 4, padding: '1px 5px', fontSize: 11, color: '#71717a' }}>Alt+N</kbd> new chat
+                <p style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 32 }}>
+                  {activePersona?.tagline || 'Ask me anything'} · <kbd style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px', fontSize: 11, color: 'var(--text2)' }}>Alt+N</kbd> new chat
                 </p>
                 <div className="suggestion-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, maxWidth: 520, margin: '0 auto', textAlign: 'left' }}>
                   {activeSuggestions.map(s => (

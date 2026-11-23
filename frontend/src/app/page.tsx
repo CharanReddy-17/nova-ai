@@ -66,7 +66,7 @@ export default function Home() {
         if (p.y > canvas.height) p.y = 0;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(167,139,250,${p.opacity})`;
+        ctx.fillStyle = `rgba(244,174,82,${p.opacity})`;
         ctx.fill();
       });
       animId = requestAnimationFrame(draw);
@@ -82,15 +82,15 @@ export default function Home() {
   }, []);
 
   return (
-    <div style={{ background: '#09090b', minHeight: '100vh', overflowX: 'hidden' }}>
+    <div style={{ background: '#2A1A0E', minHeight: '100vh', overflowX: 'hidden' }}>
       {/* Particle bg */}
       <canvas ref={canvasRef} style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }} />
 
       {/* Gradient orbs */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: '-20%', left: '-10%', width: 600, height: 600, background: 'radial-gradient(circle, rgba(124,58,237,0.18) 0%, transparent 70%)', borderRadius: '50%' }} />
-        <div style={{ position: 'absolute', bottom: '-10%', right: '-10%', width: 500, height: 500, background: 'radial-gradient(circle, rgba(236,72,153,0.12) 0%, transparent 70%)', borderRadius: '50%' }} />
-        <div style={{ position: 'absolute', top: '40%', left: '50%', width: 400, height: 400, background: 'radial-gradient(circle, rgba(6,182,212,0.08) 0%, transparent 70%)', borderRadius: '50%', transform: 'translate(-50%,-50%)' }} />
+        <div style={{ position: 'absolute', top: '-20%', left: '-10%', width: 600, height: 600, background: 'radial-gradient(circle, rgba(212,98,26,0.22) 0%, transparent 70%)', borderRadius: '50%' }} />
+        <div style={{ position: 'absolute', bottom: '-10%', right: '-10%', width: 500, height: 500, background: 'radial-gradient(circle, rgba(244,174,82,0.18) 0%, transparent 70%)', borderRadius: '50%' }} />
+        <div style={{ position: 'absolute', top: '40%', left: '50%', width: 400, height: 400, background: 'radial-gradient(circle, rgba(212,98,26,0.12) 0%, transparent 70%)', borderRadius: '50%', transform: 'translate(-50%,-50%)' }} />
       </div>
 
       {/* ── Navbar ─────────────────────────────────────────────────────────── */}
@@ -98,9 +98,9 @@ export default function Home() {
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 40px', height: 64,
-        background: scrolled ? 'rgba(9,9,11,0.85)' : 'transparent',
+        background: scrolled ? 'rgba(42,26,14,0.92)' : 'transparent',
         backdropFilter: scrolled ? 'blur(20px)' : 'none',
-        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : 'none',
+        borderBottom: scrolled ? '1px solid rgba(254,243,226,0.08)' : 'none',
         transition: 'all 0.3s ease',
       }}>
         <a href="/" className="nova-logo" style={{ textDecoration: 'none' }}>
@@ -164,14 +164,14 @@ export default function Home() {
           transition={{ opacity: { delay: 0.8, duration: 0.6 }, y: { delay: 0.8, duration: 3, repeat: Infinity, ease: 'easeInOut' } }}
           style={{
             marginTop: 64,
-            background: 'rgba(24,24,27,0.9)',
+            background: 'rgba(61,37,18,0.9)',
             backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            border: '1px solid rgba(254,243,226,0.12)',
             borderRadius: 20,
             padding: 20,
             width: '100%',
             maxWidth: 420,
-            boxShadow: '0 24px 64px rgba(0,0,0,0.5), 0 0 40px rgba(124,58,237,0.15)',
+            boxShadow: '0 24px 64px rgba(42,26,14,0.6), 0 0 40px rgba(212,98,26,0.2)',
           }}>
           {/* Fake chat */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -186,16 +186,16 @@ export default function Home() {
               <div className="avatar" style={{ width: 28, height: 28, fontSize: 12 }}>N</div>
               <div className="chat-bubble-ai" style={{ fontSize: 13, maxWidth: '85%' }}>
                 A black hole is a region of spacetime where gravity is so intense that nothing — not even light — can escape once past the event horizon...
-                {showTyping && <span style={{ color: '#a855f7', marginLeft: 2 }}>|</span>}
+                {showTyping && <span style={{ color: '#F4AE52', marginLeft: 2 }}>|</span>}
               </div>
             </div>
           </div>
           {/* Bottom bar */}
-          <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ flex: 1, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#52525b' }}>
+          <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(254,243,226,0.08)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ flex: 1, background: 'rgba(254,243,226,0.05)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#c9a06a' }}>
               Message NOVA AI...
             </div>
-            <div style={{ width: 30, height: 30, background: 'linear-gradient(135deg,#7c3aed,#a855f7)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>↑</div>
+            <div style={{ width: 30, height: 30, background: 'linear-gradient(135deg,#D4621A,#F4AE52)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#2A1A0E' }}>↑</div>
           </div>
         </motion.div>
       </section>
@@ -242,7 +242,7 @@ export default function Home() {
               initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }} transition={{ delay: i * 0.15 }}
               style={{ display: 'flex', alignItems: 'flex-start', gap: 24, padding: '24px 28px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: '#7c3aed', fontFamily: 'JetBrains Mono, monospace', minWidth: 28 }}>{s.n}</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#D4621A', fontFamily: 'JetBrains Mono, monospace', minWidth: 28 }}>{s.n}</div>
               <div>
                 <h3 style={{ color: '#fafafa', fontWeight: 700, fontSize: 17, marginBottom: 4 }}>{s.title}</h3>
                 <p style={{ color: '#71717a', fontSize: 14 }}>{s.desc}</p>
@@ -255,7 +255,7 @@ export default function Home() {
       {/* ── CTA Banner ─────────────────────────────────────────────────────── */}
       <section style={{ position: 'relative', zIndex: 1, padding: '80px 24px' }}>
         <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center', padding: '56px 32px', background: 'linear-gradient(135deg, rgba(124,58,237,0.15), rgba(236,72,153,0.08))', border: '1px solid rgba(124,58,237,0.25)', borderRadius: 24, boxShadow: '0 0 60px rgba(124,58,237,0.1)' }}>
+          style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center', padding: '56px 32px', background: 'linear-gradient(135deg, rgba(212,98,26,0.2), rgba(244,174,82,0.1))', border: '1px solid rgba(212,98,26,0.3)', borderRadius: 24, boxShadow: '0 0 60px rgba(212,98,26,0.15)' }}>
           <h2 style={{ fontSize: 'clamp(24px,4vw,40px)', fontWeight: 800, color: '#fafafa', marginBottom: 16 }}>
             Ready to think differently?
           </h2>
