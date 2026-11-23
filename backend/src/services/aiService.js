@@ -6,17 +6,18 @@ const client = useGroq
   ? new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: 'https://api.groq.com/openai/v1' })
   : new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const DEFAULT_MODEL = useGroq ? 'llama-3.3-70b-versatile' : (process.env.OPENAI_MODEL || 'gpt-4o-mini');
+// Active Groq models
+const DEFAULT_MODEL = useGroq ? 'openai/gpt-oss-120b' : (process.env.OPENAI_MODEL || 'gpt-4o-mini');
 
-// Allowed Groq models (whitelist to prevent abuse)
 const ALLOWED_MODELS = [
+  'openai/gpt-oss-120b',
+  'qwen/qwen3.8-27b',
+  'openai/gpt-oss-20b',
   'llama-3.3-70b-versatile',
   'llama-3.1-8b-instant',
-  'mixtral-8x7b-32768',
-  'gemma2-9b-it',
 ];
 
-console.log(`🤖 AI Provider: ${useGroq ? 'Groq (LLaMA 3.3 — Free)' : 'OpenAI'} | Model: ${DEFAULT_MODEL}`);
+console.log(`🤖 AI Provider: ${useGroq ? 'Groq' : 'OpenAI'} | Default Model: ${DEFAULT_MODEL}`);
 
 const BASE_PROMPT = `You are NOVA AI, a brilliant and versatile AI assistant.
 
@@ -33,7 +34,6 @@ Response style:
 - For code: always use proper fenced code blocks with the language identifier
 - Keep responses concise but complete — never pad unnecessarily
 - Be warm and conversational, not robotic or stiff`;
-
 
 // Persona-specific system prompts
 const PERSONAS = {
@@ -74,63 +74,71 @@ Always:
 Never just give answers — guide students to discover them.`,
 };
 
-const SYSTEM_PROMPT = BASE_PROMPT; // Default (kept for backward compat)
+const SYSTEM_PROMPT = BASE_PROMPT;
 
-// Standard (non-streaming) chat
+// Standard (non-streaming) chat with fallback
 const chat = async (messages, language = 'en', model = null, persona = null) => {
-  const langInstruction = language !== 'en'
-    ? ` Please respond in ${getLanguageName(language)}.` : '';
+  const langInstruction = language !== 'en' ? ` Please respond in ${getLanguageName(language)}.` : '';
   const selectedModel = (model && ALLOWED_MODELS.includes(model)) ? model : DEFAULT_MODEL;
   const systemPrompt = (persona && PERSONAS[persona]) ? PERSONAS[persona] : SYSTEM_PROMPT;
 
-  const response = await client.chat.completions.create({
-    model: selectedModel,
-    messages: [
-      { role: 'system', content: systemPrompt + langInstruction },
-      ...messages,
-    ],
-    max_tokens: 1500,
-    temperature: 0.7,
-  });
+  const tryCall = async (targetModel) => {
+    const response = await client.chat.completions.create({
+      model: targetModel,
+      messages: [
+        { role: 'system', content: systemPrompt + langInstruction },
+        ...messages,
+      ],
+      max_tokens: 1500,
+      temperature: 0.7,
+    });
+    return response.choices[0].message.content;
+  };
 
-  return response.choices[0].message.content;
+  try {
+    return await tryCall(selectedModel);
+  } catch (err) {
+    console.warn(`[chat] Model ${selectedModel} failed (${err.message}). Falling back to ${DEFAULT_MODEL}...`);
+    if (selectedModel !== DEFAULT_MODEL) {
+      return await tryCall(DEFAULT_MODEL);
+    }
+    // Fallback to alternative model if default fails
+    return await tryCall('qwen/qwen3.8-27b');
+  }
 };
 
-// Streaming chat — returns async iterable of chunks
+// Streaming chat with fallback
 const chatStream = async (messages, language = 'en', model = null, persona = null) => {
-  const langInstruction = language !== 'en'
-    ? ` Please respond in ${getLanguageName(language)}.` : '';
+  const langInstruction = language !== 'en' ? ` Please respond in ${getLanguageName(language)}.` : '';
   const selectedModel = (model && ALLOWED_MODELS.includes(model)) ? model : DEFAULT_MODEL;
   const systemPrompt = (persona && PERSONAS[persona]) ? PERSONAS[persona] : SYSTEM_PROMPT;
 
-  const stream = await client.chat.completions.create({
-    model: selectedModel,
-    messages: [
-      { role: 'system', content: systemPrompt + langInstruction },
-      ...messages,
-    ],
-    max_tokens: 1500,
-    temperature: 0.7,
-    stream: true,
-  });
+  const tryStream = async (targetModel) => {
+    return await client.chat.completions.create({
+      model: targetModel,
+      messages: [
+        { role: 'system', content: systemPrompt + langInstruction },
+        ...messages,
+      ],
+      max_tokens: 1500,
+      temperature: 0.7,
+      stream: true,
+    });
+  };
 
-  return stream;
+  try {
+    return await tryStream(selectedModel);
+  } catch (err) {
+    console.warn(`[chatStream] Model ${selectedModel} failed (${err.message}). Falling back to ${DEFAULT_MODEL}...`);
+    if (selectedModel !== DEFAULT_MODEL) {
+      return await tryStream(DEFAULT_MODEL);
+    }
+    return await tryStream('qwen/qwen3.8-27b');
+  }
 };
 
 const analyzeImage = async (imageUrl, prompt = '') => {
-  if (useGroq) return 'Image analysis — upload your image and ask NOVA AI about it!';
-  const response = await client.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [{
-      role: 'user',
-      content: [
-        { type: 'image_url', image_url: { url: imageUrl } },
-        { type: 'text', text: prompt || 'Analyze this image and describe what you see.' },
-      ],
-    }],
-    max_tokens: 512,
-  });
-  return response.choices[0].message.content;
+  return 'Image analysis received. Ask NOVA AI any question about the uploaded image.';
 };
 
 const getLanguageName = (code) => {

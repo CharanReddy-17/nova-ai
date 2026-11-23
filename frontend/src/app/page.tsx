@@ -16,7 +16,7 @@ const FEATURES = [
   },
   {
     icon: Brain,
-    title: 'LLaMA 3.3 Intelligence',
+    title: 'High-Capacity Reasoning',
     desc: 'Deep reasoning, precision code generation, and nuanced writing across multiple specialized personas.',
   },
   {
@@ -28,7 +28,7 @@ const FEATURES = [
 
 const STEPS = [
   { n: '01', title: 'Create your account', desc: 'Sign up in seconds — no payment details or setup required.' },
-  { n: '02', title: 'Choose model or persona', desc: 'Select from LLaMA 3.3 70B, Mixtral, or specialized roles like Coder and Scientist.' },
+  { n: '02', title: 'Choose model or persona', desc: 'Select from high-speed models, or specialized roles like Coder and Scientist.' },
   { n: '03', title: 'Chat, code, and create', desc: 'Experience instant answers, inline code running, and cinematic image generation.' },
 ];
 
@@ -120,7 +120,7 @@ export default function Home() {
             fontSize: 12, fontWeight: 500, color: '#E5A95A', marginBottom: 28,
           }}>
             <Sparkles size={12} />
-            <span>Powered by Groq LPU & LLaMA 3.3 70B</span>
+            <span>Powered by Groq High-Speed LPU Inference</span>
           </div>
         </motion.div>
 
@@ -192,7 +192,7 @@ export default function Home() {
               <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#10B981', opacity: 0.8 }} />
             </div>
             <div style={{ fontSize: 11, color: '#71717A', fontWeight: 500 }}>
-              NOVA AI · LLaMA 3.3 70B
+              NOVA AI · High-Speed Inference
             </div>
             <div style={{ width: 30 }} />
           </div>
