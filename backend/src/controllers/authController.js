@@ -71,4 +71,34 @@ const updatePreferences = async (req, res) => {
   }
 };
 
-module.exports = { register, login, getMe, updatePreferences };
+// @desc   Reset password
+// @route  POST /api/auth/reset-password
+const resetPassword = async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+    if (!email || !newPassword) {
+      return res.status(400).json({ error: 'Email and new password are required.' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters.' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return res.status(404).json({ error: 'No account found with this email address.' });
+    }
+
+    user.passwordHash = newPassword;
+    await user.save();
+
+    res.json({
+      message: 'Password reset successful! You can now log in.',
+      token: generateToken(user._id),
+      user: { id: user._id, username: user.username, email: user.email, preferences: user.preferences },
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Password reset failed.' });
+  }
+};
+
+module.exports = { register, login, getMe, updatePreferences, resetPassword };

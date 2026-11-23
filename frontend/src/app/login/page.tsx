@@ -3,8 +3,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
+import api from '@/services/api';
 
-type Mode = 'login' | 'register';
+type Mode = 'login' | 'register' | 'forgot';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [showConf, setShowConf] = useState(false);
   const [error, setError]       = useState('');
+  const [success, setSuccess]   = useState('');
   const [loading, setLoading]   = useState(false);
   const [shake, setShake]       = useState(false);
 
@@ -75,11 +77,40 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
 
     if (mode === 'register') {
       if (!name.trim()) return showError('Please enter your name.');
       if (password.length < 6) return showError('Password must be at least 6 characters.');
       if (password !== confirm) return showError('Passwords do not match.');
+    }
+
+    if (mode === 'forgot') {
+      if (!email.trim()) return showError('Please enter your account email.');
+      if (password.length < 6) return showError('New password must be at least 6 characters.');
+      if (password !== confirm) return showError('Passwords do not match.');
+      setLoading(true);
+      try {
+        const { data } = await api.post('/auth/reset-password', { email: email.trim(), newPassword: password });
+        if (data.token && data.user) {
+          localStorage.setItem('cosmic_token', data.token);
+          localStorage.setItem('cosmic_user', JSON.stringify(data.user));
+          api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
+          router.replace('/dashboard');
+        } else {
+          setSuccess('Password updated! You can now sign in.');
+          setMode('login');
+          setPassword('');
+          setConfirm('');
+        }
+      } catch (err: unknown) {
+        const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+          || 'Failed to reset password. Please check your email.';
+        showError(msg);
+      } finally {
+        setLoading(false);
+      }
+      return;
     }
 
     setLoading(true);
@@ -102,6 +133,7 @@ export default function LoginPage() {
   const switchMode = (m: Mode) => {
     setMode(m);
     setError('');
+    setSuccess('');
     setName(''); setEmail(''); setPassword(''); setConfirm('');
   };
 
@@ -155,29 +187,46 @@ export default function LoginPage() {
 
         {/* Heading */}
         <div style={{ marginBottom: 32 }}>
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: '#fafafa', marginBottom: 6 }}>
-            {mode === 'login' ? 'Welcome back' : 'Create your account'}
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: '#FEF3E2', marginBottom: 6 }}>
+            {mode === 'login' ? 'Welcome back' : mode === 'register' ? 'Create your account' : 'Reset your password'}
           </h1>
-          <p style={{ color: '#71717a', fontSize: 14 }}>
-            {mode === 'login' ? 'Sign in to continue to NOVA AI.' : 'Join NOVA AI — it\'s completely free.'}
+          <p style={{ color: '#c9a06a', fontSize: 14 }}>
+            {mode === 'login' ? 'Sign in to continue to NOVA AI.' : mode === 'register' ? "Join NOVA AI — it's completely free." : 'Enter your registered email and choose a new password.'}
           </p>
         </div>
 
         {/* Mode switcher */}
-        <div style={{ display: 'flex', background: '#3d2512', borderRadius: 10, padding: 4, marginBottom: 28, border: '1px solid rgba(254,243,226,0.1)' }}>
-          {(['login', 'register'] as Mode[]).map(m => (
-            <button key={m} onClick={() => switchMode(m)}
-              style={{
-                flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none',
-                background: mode === m ? '#4f3018' : 'transparent',
-                color: mode === m ? '#FEF3E2' : '#c9a06a',
-                fontWeight: mode === m ? 600 : 400,
-                fontSize: 14, cursor: 'pointer', transition: 'all 0.2s',
-              }}>
-              {m === 'login' ? 'Sign In' : 'Create Account'}
-            </button>
-          ))}
-        </div>
+        {mode !== 'forgot' ? (
+          <div style={{ display: 'flex', background: '#3d2512', borderRadius: 10, padding: 4, marginBottom: 28, border: '1px solid rgba(254,243,226,0.1)' }}>
+            {(['login', 'register'] as Mode[]).map(m => (
+              <button key={m} onClick={() => switchMode(m)}
+                style={{
+                  flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none',
+                  background: mode === m ? '#4f3018' : 'transparent',
+                  color: mode === m ? '#FEF3E2' : '#c9a06a',
+                  fontWeight: mode === m ? 600 : 400,
+                  fontSize: 14, cursor: 'pointer', transition: 'all 0.2s',
+                }}>
+                {m === 'login' ? 'Sign In' : 'Create Account'}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div style={{ marginBottom: 20 }}>
+            <span className="badge badge-purple" style={{ fontSize: 12 }}>🔒 Password Recovery</span>
+          </div>
+        )}
+
+        {/* Success banner */}
+        <AnimatePresence>
+          {success && (
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              style={{ background: 'rgba(168,201,127,0.15)', border: '1px solid rgba(168,201,127,0.3)', borderRadius: 8, padding: '10px 14px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 14 }}>✅</span>
+              <span style={{ color: '#c5e0a0', fontSize: 13 }}>{success}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Error banner */}
         <AnimatePresence>
@@ -201,39 +250,56 @@ export default function LoginPage() {
           </AnimatePresence>
 
           <InputField icon="✉️" type="email" placeholder="Email address" value={email} onChange={setEmail} />
-          <InputField icon="🔒" type={showPass ? 'text' : 'password'} placeholder="Password" value={password} onChange={setPassword}
-            suffix={<button type="button" onClick={() => setShowPass(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#71717a', fontSize: 13, padding: '0 4px' }}>{showPass ? 'Hide' : 'Show'}</button>} />
+          <InputField icon="🔒" type={showPass ? 'text' : 'password'} placeholder={mode === 'forgot' ? 'New password (min 6 chars)' : 'Password'} value={password} onChange={setPassword}
+            suffix={<button type="button" onClick={() => setShowPass(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#c9a06a', fontSize: 13, padding: '0 4px' }}>{showPass ? 'Hide' : 'Show'}</button>} />
 
           <AnimatePresence mode="wait">
-            {mode === 'register' && (
+            {(mode === 'register' || mode === 'forgot') && (
               <motion.div key="conf" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
                 <InputField icon="🔒" type={showConf ? 'text' : 'password'} placeholder="Confirm password" value={confirm} onChange={setConfirm}
-                  suffix={<button type="button" onClick={() => setShowConf(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#71717a', fontSize: 13, padding: '0 4px' }}>{showConf ? 'Hide' : 'Show'}</button>} />
+                  suffix={<button type="button" onClick={() => setShowConf(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#c9a06a', fontSize: 13, padding: '0 4px' }}>{showConf ? 'Hide' : 'Show'}</button>} />
               </motion.div>
             )}
           </AnimatePresence>
 
           {mode === 'login' && (
             <div style={{ textAlign: 'right', marginTop: -8 }}>
-              <a href="#" style={{ color: '#F4AE52', fontSize: 13 }}>Forgot password?</a>
+              <button type="button" onClick={() => switchMode('forgot')} style={{ background: 'none', border: 'none', color: '#F4AE52', fontSize: 13, cursor: 'pointer' }}>Forgot password?</button>
             </div>
           )}
 
           <button type="submit" className="btn-primary" disabled={loading}
             style={{ width: '100%', padding: '13px', fontSize: 15, borderRadius: 10, marginTop: 4, justifyContent: 'center' }}>
             {loading
-              ? <><div className="spinner" style={{ width: 16, height: 16 }} /> {mode === 'login' ? 'Signing in…' : 'Creating account…'}</>
-              : mode === 'login' ? '→ Sign In' : '✦ Create Account'}
+              ? <><div className="spinner" style={{ width: 16, height: 16 }} /> {mode === 'login' ? 'Signing in…' : mode === 'register' ? 'Creating account…' : 'Resetting password…'}</>
+              : mode === 'login' ? '→ Sign In' : mode === 'register' ? '✦ Create Account' : '✦ Reset Password & Sign In'}
           </button>
         </form>
 
         {/* Switch link */}
-        <p style={{ textAlign: 'center', color: '#71717a', fontSize: 13, marginTop: 24 }}>
-          {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-          <button onClick={() => switchMode(mode === 'login' ? 'register' : 'login')}
-            style={{ background: 'none', border: 'none', color: '#F4AE52', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
-            {mode === 'login' ? 'Sign up free' : 'Sign in'}
-          </button>
+        <p style={{ textAlign: 'center', color: '#c9a06a', fontSize: 13, marginTop: 24 }}>
+          {mode === 'forgot' ? (
+            <button onClick={() => switchMode('login')}
+              style={{ background: 'none', border: 'none', color: '#F4AE52', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
+              ← Back to Sign In
+            </button>
+          ) : mode === 'login' ? (
+            <>
+              {"Don't have an account? "}
+              <button onClick={() => switchMode('register')}
+                style={{ background: 'none', border: 'none', color: '#F4AE52', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
+                Sign up free
+              </button>
+            </>
+          ) : (
+            <>
+              {'Already have an account? '}
+              <button onClick={() => switchMode('login')}
+                style={{ background: 'none', border: 'none', color: '#F4AE52', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
+                Sign in
+              </button>
+            </>
+          )}
         </p>
 
         <p style={{ textAlign: 'center', color: '#3f3f46', fontSize: 12, marginTop: 32 }}>

@@ -11,8 +11,8 @@ interface VoiceInputProps {
 // Augment window type for webkit
 declare global {
   interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
   }
 }
 
@@ -21,7 +21,7 @@ export default function VoiceInput({ onTranscript, disabled }: VoiceInputProps) 
   const [supported, setSupported] = useState(false);
   const [interim, setInterim] = useState('');
   const [error, setError] = useState('');
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -48,7 +48,7 @@ export default function VoiceInput({ onTranscript, disabled }: VoiceInputProps) 
 
     recognition.onstart = () => setListening(true);
 
-    recognition.onresult = (event) => {
+    recognition.onresult = (event: any) => {
       let finalText = '';
       let interimText = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -64,7 +64,7 @@ export default function VoiceInput({ onTranscript, disabled }: VoiceInputProps) 
       }
     };
 
-    recognition.onerror = (e) => {
+    recognition.onerror = (e: any) => {
       if (e.error === 'no-speech') {
         setError('No speech detected. Try again.');
       } else if (e.error === 'not-allowed') {
